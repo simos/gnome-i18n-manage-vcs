@@ -1,0 +1,5 @@
+This tool allows to manage the GNOME translations that reside on a VCS.
+
+For example, if you want to edit several translation files and then 
+commit them to GNOME VCS, this tool automates the VCS access so that
+what you need to worry is only the editing of the translation files.
