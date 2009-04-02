@@ -18,6 +18,7 @@
 # Version : 0.8
 
 import sys		# sys.argv, sys.exit()
+import os		# os.system()
 from lxml import etree  # etree.XMLParser(), etree.XML()
 
 class GNOMEI18nTarget:
@@ -156,6 +157,12 @@ for category in stats['categories'].keys():
 			pofilename = resource['pofile'].rpartition('/')[2]
 			vcspath = resource['vcspath'].replace('/viewvc/', '/svn/').replace('http://', 'svn+ssh://' + MYUSERNAME + '@')
 			branch = stats['categories'][category][module]['branch']
-			print "\t\t\t\t\tCMD:", "svn co", vcspath, 'VCS/' + module + '@' + branch
-			print "\t\t\t\t\tCMD:", "wget", "http://l10n.gnome.org" + resource['pofile'], '-O', 'PO/' + pofilename
-			print "\t\t\t\t\tCMD:", "ln -s", '../VCS/' + module + '@' + branch + '/' + language + '.po', 'LINKS/' + pofilename
+			CMD1 = 'svn co ' + vcspath + ' VCS/' + module + '@' + branch
+			CMD2 = 'wget http://l10n.gnome.org' + resource['pofile'] + ' -O PO/' + pofilename
+			CMD3 = 'ln -s ../VCS/' + module + '@' + branch + '/' + language + '.po LINKS/' + pofilename
+			print "\t\t\t\t\tCMD:", CMD1
+			print "\t\t\t\t\tCMD:", CMD2
+			print "\t\t\t\t\tCMD:", CMD3
+			os.system(CMD1)
+			os.system(CMD2)
+			os.system(CMD3)
