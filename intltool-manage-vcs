@@ -150,6 +150,10 @@ for category in stats['categories'].keys():
 			print "\t\t\t\tID:", resource['id'], "Type:", resource['type']
 			print "\t\t\t\t\tPOFile:", resource['pofile']
 			print "\t\t\t\t\tVCSPath:", resource['vcspath']
+			print "\t\t\t\t\tCMD:", "wget", "http://l10n.gnome.org/" + resource['pofile']
+			print "\t\t\t\t\tCMD:", "svn co", resource['vcspath'].replace('/viewvc/', '/svn/'), resource['id'] + resource['type'] + stats['categories'][category][module]['branch']
+			print "\t\t\t\t\tCMD:", "svn switch --relocate", resource['vcspath'].replace('/viewvc/', '/svn/'), resource['vcspath'].replace('http://', 'svn+ssh://MYUSERNAME@')
+			
 
 print "\n\n\n\n"
 print stats
