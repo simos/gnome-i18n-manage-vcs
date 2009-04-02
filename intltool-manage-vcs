@@ -72,11 +72,11 @@ class GNOMEI18nTarget:
         def end(self, tag):
 		if tag not in self.message_states:
 			if tag == 'domain':
-				self.resources.append({'resource': tag, 'type': self.domain, 
+				self.resources.append({'id': tag, 'type': self.domain, 
 					'pofile': self.pofile, 'vcspath' : self.vcspath }) 
 				self.domain = self.pofile = self.vcspath = None
 			elif tag == 'document':
-				self.resources.append({'resource': tag, 'type': self.document, 
+				self.resources.append({'id': tag, 'type': self.document, 
 					'pofile': self.pofile, 'vcspath' : self.vcspath }) 
 				self.document = self.pofile = self.vcspath = None
 			elif tag == 'module':
@@ -147,7 +147,12 @@ print "Language :", stats['language']
 for category in stats['categories'].keys():
 	print "\tCategory:", category
 	for module in stats['categories'][category]:
-		for resource in stats['categories'][category][module]:
-			print "\t\t", stats['categories'][category][module][resource]
+		print "\t\tModule:", module
+		print "\t\t\tBranch:", stats['categories'][category][module]['branch']
+		for resource in stats['categories'][category][module]['resource']:
+			print "\t\t\t\tID:", resource['id'], "Type:", resource['type']
+			print "\t\t\t\t\tPOFile:", resource['pofile']
+			print "\t\t\t\t\tVCSPath:", resource['vcspath']
 
+print "\n\n\n\n"
 print stats
