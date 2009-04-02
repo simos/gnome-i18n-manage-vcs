@@ -17,16 +17,11 @@
 # Author  : Simos Xenitellis <simos@gnome.org>
 # Version : 0.8
 
-import sys
-import os.path
-import pdb
-from lxml import etree
+import sys		# sys.argv, sys.exit()
+from lxml import etree  # etree.XMLParser(), etree.XML()
 
 class GNOMEI18nTarget:
 	def __init__(self):
-		self.tabs = "\t\t\t\t\t\t\t\t\t\t"
-        	self.level = -1
-
 		self.message_states = ['translated', 'untranslated', 'fuzzy', 'docfuzzy', 'docuntranslated', 'doctranslated']
 		self.flags = []
 
@@ -65,9 +60,9 @@ class GNOMEI18nTarget:
 				self.stats_language = attrib['language']
 			elif tag not in ['pofile', 'svnpath']:
 				# Should not be reached
-				print self.tabs[:self.level], ("start %s %s" % (tag, attrib))
+				#print self.tabs[:self.level], ("start %s %s" % (tag, attrib))
+				pass
 			self.push_flag(tag)
-	    		self.level += 1
 
         def end(self, tag):
 		if tag not in self.message_states:
@@ -94,9 +89,9 @@ class GNOMEI18nTarget:
 				self.stats_release = self.stats_language = None
 			elif tag not in ['pofile', 'svnpath']:
 				# Should not be reached
-            			print self.tabs[:self.level], ("end %s" % tag)
+            			#print self.tabs[:self.level], ("end %s" % tag)
+				pass
 			self.pop_flag(tag)
-	    		self.level -= 1
 
         def data(self, data):
 	    	if not data.isspace() and not data.isdigit():
@@ -105,7 +100,9 @@ class GNOMEI18nTarget:
 			elif self.flags[-1] == 'svnpath':
 				self.vcspath = data
 			else:
-            			print self.tabs[:self.level], ("data %r" % data)
+				# Should not be reached
+            			#print self.tabs[:self.level], ("data %r" % data)
+				pass
 
         def comment(self, text):
 		pass
