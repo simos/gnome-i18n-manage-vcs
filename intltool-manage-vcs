@@ -140,8 +140,10 @@ result = etree.XML(contents, parser)
 
 stats = mytarget.get_stats()
 
-print "Release  :", stats['release']
-print "Language :", stats['language']
+release = stats['release']
+language = stats['language']
+print "Release  :", release
+print "Language :", language
 for category in stats['categories'].keys():
 	print "\tCategory:", category
 	for module in stats['categories'][category]:
@@ -156,3 +158,4 @@ for category in stats['categories'].keys():
 			branch = stats['categories'][category][module]['branch']
 			print "\t\t\t\t\tCMD:", "svn co", vcspath, 'VCS/' + module + '@' + branch
 			print "\t\t\t\t\tCMD:", "wget", "http://l10n.gnome.org" + resource['pofile'], '-O', 'PO/' + pofilename
+			print "\t\t\t\t\tCMD:", "ln -s", '../VCS/' + module + '@' + branch + '/' + language + '.po', 'LINKS/' + pofilename
