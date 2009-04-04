@@ -333,19 +333,25 @@ class GNOMEI18nManage:
 					vcspathtemp = resource['vcspath'].replace('/viewvc/', '/svn/')
 					vcspath = vcspathtemp.replace('http://', 'svn+ssh://' + self.username + '@')
 					branch = stats['categories'][cat][mod]['branch']
+					alignment = ''
+					if resource['type'] == 'help':
+						alignment = 'el/'
+						print "Setting alignment to ", alignment
 
 					if self.opt_svnquiet:
 						CMD1 = 'svn co --quiet ' + vcspath + ' ' + self.dir_vcs + mod + '@' + branch
 						CMD2 = 'wget --quiet http://l10n.gnome.org' + resource['pofile'] + \
 							' -O ' + self.dir_po + pofilename
-						CMD3 = 'ln -s ../' + self.dir_vcs + mod + '@' + branch + '/' + \
-							language + '.po ' + self.dir_links + pofilename
+						CMD3 = 'ln -s ../' + self.dir_vcs + mod + '@' + \
+							branch + '/' + alignment + language + '.po ' + \
+							self.dir_links + pofilename
 					else:
 						CMD1 = 'svn co ' + vcspath + ' ' + self.dir_vcs + mod + '@' + branch
 						CMD2 = 'wget http://l10n.gnome.org' + resource['pofile'] + \
 							' -O ' + self.dir_po + pofilename
-						CMD3 = 'ln --verbose -s ../' + self.dir_vcs + mod + '@' + branch + '/' + \
-							language + '.po ' + self.dir_links + pofilename
+						CMD3 = 'ln --verbose -s ../' + self.dir_vcs + mod + '@' + \
+							branch + '/' + alignment + language + '.po ' + \
+							self.dir_links + pofilename
 
 					if action == 'print':
 						print "\t\t\t\t\tCMD:", CMD1
@@ -360,6 +366,14 @@ class GNOMEI18nManage:
 						os.system(CMD2)
 						print "\t\t\t\t\tCMD:", CMD3
 						os.system(CMD3)
+						try:
+							os.stat(self.dir_links + pofilename)
+						except OSError, err:
+							print "ERROR: We did not create the link properly"
+							print "This is an internal error in the script"
+							print "Please clear the mess with --blank and check the source"
+							print "Now exiting..."
+							sys.exit(-5)
 	
 	def parse_gnome_xml_file(self, filename):
 		try:
