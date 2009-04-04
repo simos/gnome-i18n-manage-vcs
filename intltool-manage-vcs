@@ -360,13 +360,14 @@ class GNOMEI18nManage:
 						print "\t\t\t\t\tCMD:", CMD2
 						print "\t\t\t\t\tCMD:", CMD3
 					elif action == 'execute':
-						print "\t\t\t\t\tTouching current time at", self.dir_po + self.file_START
+						if not self.opt_quiet:
+							print "\t\t\t\t\tTouching current time at", self.dir_po + self.file_START
 						os.system("touch " + self.dir_po + self.file_START)
-						print "\t\t\t\t\tCMD:", CMD1
+						#print "\t\t\t\t\tCMD:", CMD1
 						os.system(CMD1)
-						print "\t\t\t\t\tCMD:", CMD2
+						#print "\t\t\t\t\tCMD:", CMD2
 						os.system(CMD2)
-						print "\t\t\t\t\tCMD:", CMD3
+						#print "\t\t\t\t\tCMD:", CMD3
 						os.system(CMD3)
 						try:
 							os.stat(self.dir_links + pofilename)
