@@ -14,8 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-# Author  : Simos Xenitellis <simos@gnome.org>
-# Version : 0.8
+# Author  : Simos Xenitellis <simos@gnome.org>, 2009
+# Version : 0.9
 
 import dircache		# dircache.listdir()
 import os		# os.system(), os.remove(), os.path.gmtime()
