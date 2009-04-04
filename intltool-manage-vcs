@@ -135,6 +135,7 @@ class GNOMEI18nManage:
 
 	category = ''
 	module = ''
+	transtype = ''		# either 'doc' or 'ui' ('document' or 'domain')
 
 	xmlurl = ''
 	xmlfilename = ''
@@ -147,6 +148,7 @@ class GNOMEI18nManage:
 
 	opt_apply = False
 	opt_commit = False
+	opt_dryrun = False
 	opt_init = False
 	opt_blank = False
 	opt_quiet = False
@@ -155,10 +157,10 @@ class GNOMEI18nManage:
 
 	def __init__(self, argv):
 		try:
-		        opts, args = getopt.getopt(argv[1:], "abc:hil:qr:su:", ["apply", "blank", 
-							"category=", "commit", "help", 
+		        opts, args = getopt.getopt(argv[1:], "abc:dhil:qr:st:u:", ["apply", "blank", 
+							"category=", "commit", "dryrun", "help", 
 							"init", "module=", "language=", "quiet", 
-							"release=", "status", "svnquiet", "username=" ])
+							"release=", "status", "svnquiet", "transtype=", "username=" ])
 		except getopt.GetoptError, err:
 			print "Error", err
         		self.usage()
@@ -174,6 +176,8 @@ class GNOMEI18nManage:
                 		self.category = a
         		if o in ("--commit"):
                 		self.opt_commit = True
+        		if o in ("--dryrun"):
+                		self.opt_dryrun = True
 		        if o in ("-h", "--help"):
        		  	     	self.usage()
                 	     	sys.exit()
@@ -191,6 +195,14 @@ class GNOMEI18nManage:
 				self.opt_status = True
      			if o in ("--svnquiet"):
 				self.opt_svnquiet = True
+     			if o in ("--transtype"):
+				if a in ['ui', 'domain']:
+					self.transtype = 'domain'
+				elif a in ['doc', 'document']:
+					self.transtype = 'document'
+				else:
+					print "ERROR: Invalid transtype, expected on of ui, doc, domain, document"
+					sys.exit(-4)
         		if o in ("-u", "--username"):
                 		self.username = a
 
@@ -238,7 +250,8 @@ class GNOMEI18nManage:
 			if start_time < os.stat(self.dir_po + pofile).st_mtime:
 				if not self.opt_quiet:
 					print "Copying", self.dir_po + pofile, "to", self.dir_links + pofile
-				shutil.copyfile(self.dir_po + pofile, self.dir_links + pofile)
+				if not self.opt_dryrun:
+					shutil.copyfile(self.dir_po + pofile, self.dir_links + pofile)
 
 	def do_commit(self):
 		dircontents = dircache.listdir(self.dir_vcs)
@@ -249,7 +262,10 @@ class GNOMEI18nManage:
 				print "Committing in", self.dir_vcs + vcsdir
 			cmd_commit = 'svn commit -m ' + '"Updated ' + self.language + ' translation"'
 			cmd_changedir = 'chdir ' + self.dir_vcs + vcsdir
-			os.system(cmd_changedir + ';' + cmd_commit)
+			if self.opt_dryrun:
+				print cmd_changedir + ';' + cmd_commit
+			else:
+				os.system(cmd_changedir + ';' + cmd_commit)
 
 	def is_empty(self):
 		for dir in [self.dir_po, self.dir_vcs, self.dir_links]:
@@ -270,14 +286,19 @@ class GNOMEI18nManage:
 					if os.path.isdir(dir + item):
 						if not self.opt_quiet:
 							print "Removing directory tree", dir + item
-						shutil.rmtree(dir + item)
+						if not self.opt_dryrun:
+							shutil.rmtree(dir + item)
 					else:
 						if not self.opt_quiet:
 							print "Removing file", dir + item
-						os.remove(dir + item)
+						if not self.opt_dryrun:
+							os.remove(dir + item)
 
 	def init(self):	
-		self.process_stats('execute')
+		if self.opt_dryrun:
+			self.process_stats('print')
+		else:
+			self.process_stats('execute')
 
 	def process_stats(self, action):	
 		self.xmlurl = "http://l10n.gnome.org/languages/" + self.language + "/gnome-2-26/xml"
@@ -299,6 +320,9 @@ class GNOMEI18nManage:
 				print "\t\tModule:", mod
 				print "\t\t\tBranch:", stats['categories'][cat][mod]['branch']
 				for resource in stats['categories'][cat][mod]['resource']:
+					if self.transtype: 
+						if resource['id'] not in self.transtype:
+							continue
 					print "\t\t\t\tID:", resource['id'], "Type:", resource['type']
 					print "\t\t\t\t\tPOFile:", resource['pofile']
 					print "\t\t\t\t\tVCSPath:", resource['vcspath']
