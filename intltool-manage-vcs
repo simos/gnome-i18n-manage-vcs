@@ -21,6 +21,8 @@ import sys		# sys.argv, sys.exit()
 import os		# os.system()
 from lxml import etree  # etree.XMLParser(), etree.XML()
 
+PROGNAME='intltool-manage-vcs'
+
 class GNOMEI18nTarget:
 	def __init__(self):
 		self.message_states = ['translated', 'untranslated', 'fuzzy', 'docfuzzy', 'docuntranslated', 'doctranslated']
@@ -121,48 +123,121 @@ class GNOMEI18nTarget:
 	def get_stats(self):
 		return self.stats
 
-xmlfilename = "el.xml"
-MYUSERNAME = 'simos'
-if len(sys.argv) > 1:
-	xmlfilename = sys.argv[1]
+class GNOMEI18nManage:
+	xmlfilename = "el.xml"
+	MYUSERNAME = 'simos'
 
-try:
-	xmlfile = open(xmlfilename, 'r')
-	xmlfile.close
-except OSError:
-	print "Could not open file ", xmlfilename, ". Aborting..."
-	sys.exit(-1)
+	def __init__(self, argv):
+		self.parse_cli_arguments()
+		sys.exit(-1)
 
-contents = "".join(xmlfile.readlines())
+		if len(argv) > 1:
+			xmlfilename = argv[1]
 
-mytarget = GNOMEI18nTarget()
-parser = etree.XMLParser(target = mytarget)
-result = etree.XML(contents, parser)
+		try:
+			xmlfile = open(xmlfilename, 'r')
+			xmlfile.close
+		except OSError:
+			print "Could not open file ", xmlfilename, ". Aborting..."
+			sys.exit(-1)
+	
+		contents = "".join(xmlfile.readlines())
+		
+		mytarget = GNOMEI18nTarget()
+		parser = etree.XMLParser(target = mytarget)
+		result = etree.XML(contents, parser)
+	
+		stats = mytarget.get_stats()
+	
+		release = stats['release']
+		language = stats['language']
+		print "Release  :", release
+		print "Language :", language
+		for category in stats['categories'].keys():
+			print "\tCategory:", category
+			for module in stats['categories'][category]:
+				print "\t\tModule:", module
+				print "\t\t\tBranch:", stats['categories'][category][module]['branch']
+				for resource in stats['categories'][category][module]['resource']:
+					print "\t\t\t\tID:", resource['id'], "Type:", resource['type']
+					print "\t\t\t\t\tPOFile:", resource['pofile']
+					print "\t\t\t\t\tVCSPath:", resource['vcspath']
+					pofilename = resource['pofile'].rpartition('/')[2]
+					vcspathtemp = resource['vcspath'].replace('/viewvc/', '/svn/')
+					vcspath = vcspathtemp.replace('http://', 'svn+ssh://' + MYUSERNAME + '@')
+					branch = stats['categories'][category][module]['branch']
+					CMD1 = 'svn co ' + vcspath + ' VCS/' + module + '@' + branch
+					CMD2 = 'wget http://l10n.gnome.org' + resource['pofile'] + ' -O PO/' + pofilename
+					CMD3 = 'ln -s ../VCS/' + module + '@' + branch + '/' + language + '.po LINKS/' + pofilename
+					print "\t\t\t\t\tCMD:", CMD1
+					print "\t\t\t\t\tCMD:", CMD2
+					print "\t\t\t\t\tCMD:", CMD3
+					#os.system(CMD1)
+					#os.system(CMD2)
+					#os.system(CMD3)
+	
+	
+	def usage(self):
+		print PROGNAME, 'a tool that helps manage translation files from a VCS'
+	        print """Available parameters:
+   	    	 -h, --help              this craft
+       		 -s, --statistics        show overall statistics
+       		 -v, --verbose           show verbose output
 
-stats = mytarget.get_stats()
+        	Default is to show statistics."""
 
-release = stats['release']
-language = stats['language']
-print "Release  :", release
-print "Language :", language
-for category in stats['categories'].keys():
-	print "\tCategory:", category
-	for module in stats['categories'][category]:
-		print "\t\tModule:", module
-		print "\t\t\tBranch:", stats['categories'][category][module]['branch']
-		for resource in stats['categories'][category][module]['resource']:
-			print "\t\t\t\tID:", resource['id'], "Type:", resource['type']
-			print "\t\t\t\t\tPOFile:", resource['pofile']
-			print "\t\t\t\t\tVCSPath:", resource['vcspath']
-			pofilename = resource['pofile'].rpartition('/')[2]
-			vcspath = resource['vcspath'].replace('/viewvc/', '/svn/').replace('http://', 'svn+ssh://' + MYUSERNAME + '@')
-			branch = stats['categories'][category][module]['branch']
-			CMD1 = 'svn co ' + vcspath + ' VCS/' + module + '@' + branch
-			CMD2 = 'wget http://l10n.gnome.org' + resource['pofile'] + ' -O PO/' + pofilename
-			CMD3 = 'ln -s ../VCS/' + module + '@' + branch + '/' + language + '.po LINKS/' + pofilename
-			print "\t\t\t\t\tCMD:", CMD1
-			print "\t\t\t\t\tCMD:", CMD2
-			print "\t\t\t\t\tCMD:", CMD3
-			os.system(CMD1)
-			os.system(CMD2)
-			os.system(CMD3)
+	def parse_cli_arguments(self):
+		try:
+		        opts, args = getopt.getopt(sys.argv[1:], "hsv", ["help", "statistics", 
+        						        "stats", "verbose" ])
+		except:
+        		self.usage()
+        		sys.exit(0)
+
+		opt_statistics = False
+		opt_verbose = False
+
+		for o, a in opts:
+		        if o in ("-h", "--help"):
+       		  	     	usage()
+                	     	sys.exit()
+     			if o in ("-s", "--statistics"):
+				opt_statistics = True
+        		if o in ("-v", "--verbose"):
+                		opt_verbose = True
+
+	def download_hook(self, blocks_transferred, block_size, file_size):
+	        """ A download hook to provide some feedback when downloading """
+	        if blocks_transferred == 0:
+	                if file_size > 0:
+       		                 if opt_verbose:
+                	                print "Downloading", file_size, "bytes: ",
+               		else:
+                        	if opt_verbose:
+                                	print "Downloading: ",
+        	sys.stdout.write('#')
+        	sys.stdout.flush()
+
+
+	def download_file(url):
+	        """ Downloads a file provided a URL. Returns the filename. """
+	        """ Borks on failure """
+	        localfilename = url.split('/')[-1]
+	        if not isfile(localfilename) or getsize(localfilename) <= 0:
+	                if opt_verbose:
+	                        print "Downloading ", url, "..."
+	                try:
+	                        urlretrieve(url, localfilename, download_hook)
+	                except IOError, (errno, strerror):
+	                        print "I/O error(%s): %s" % (errno, strerror)
+	                        sys.exit(-1)
+	                except:
+	                        print "Unexpected error: ", sys.exc_info()[0]
+	                        sys.exit(-1)
+	                print " done."
+	        else:
+	                if opt_verbose:
+        	                print "Using cached file for ", url
+	        return localfilename
+
+start = GNOMEI18nManage(sys.argv)
