@@ -392,6 +392,7 @@ class GNOMEI18nManage:
 		 -l LL  --language LL       language code per ISO 639
 		 -r REL --release REL       release REL (such as 'gnome-2-26')
        		 -s     --status            show status
+		 -t	--transtype=TYPE    optionally specify translation type, either ui or doc
 		 -u USR --username USR      username USR (corresponds to SVN/GIT GNOME account)
        		 -v     --verbose           show verbose output
 
