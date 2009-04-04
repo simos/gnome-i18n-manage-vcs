@@ -130,15 +130,20 @@ class GNOMEI18nManage:
 	username = ''
 	release = ''
 
+	category = ''
+	module = ''
+
 	xmlurl = ''
+	xmlfilename = ''
 
 	opt_quiet = False
 	opt_status = False
 
 	def __init__(self, argv):
 		try:
-		        opts, args = getopt.getopt(argv[1:], "hl:qr:su:", ["help", "language=", 
-							"quiet", "release=", "status", "username=" ])
+		        opts, args = getopt.getopt(argv[1:], "hl:qr:su:", ["help", "category=", "module=",
+							"language=", "quiet", "release=", "status", 
+							"username=" ])
 		except getopt.GetoptError, err:
 			print "Error", err
         		self.usage()
@@ -149,6 +154,10 @@ class GNOMEI18nManage:
 		        if o in ("-h", "--help"):
        		  	     	usage()
                 	     	sys.exit()
+        		if o in ("-c", "--category"):
+                		self.category = a
+        		if o in ("-m", "--module"):
+                		self.module = a
         		if o in ("-l", "--language"):
                 		self.language = a
         		if o in ("-q", "--quiet"):
@@ -160,14 +169,16 @@ class GNOMEI18nManage:
         		if o in ("-u", "--username"):
                 		self.username = a
 
-		self.xmlurl = "http://l10n.gnome.org/languages/" + self.language + "/gnome-2-26/xml"
-		self.download_file(self.xmlurl)
+		if self.language == '' or self.release == '' or self.username == '':
+			print "Error: Required parameters missing"
+			self.usage()
+			sys.exit(-1)
 
-		if len(argv) > 1:
-			xmlfilename = argv[1]
+		self.xmlurl = "http://l10n.gnome.org/languages/" + self.language + "/gnome-2-26/xml"
+		self.xmlfilename = self.download_file(self.xmlurl)
 
 		try:
-			xmlfile = open(xmlfilename, 'r')
+			xmlfile = open(self.xmlfilename, 'r')
 			xmlfile.close
 		except OSError:
 			print "Could not open file ", xmlfilename, ". Aborting..."
@@ -185,25 +196,29 @@ class GNOMEI18nManage:
 		language = stats['language']
 		print "Release  :", release
 		print "Language :", language
-		for category in stats['categories'].keys():
-			print "\tCategory:", category
-			for module in stats['categories'][category]:
-				print "\t\tModule:", module
-				print "\t\t\tBranch:", stats['categories'][category][module]['branch']
-				for resource in stats['categories'][category][module]['resource']:
+		for cat in stats['categories'].keys():
+			if self.category != '' and cat != self.category:
+				continue
+			print "\tCategory:", cat
+			for mod in stats['categories'][cat]:
+				if self.module != '' and mod != self.module:
+					continue
+				print "\t\tModule:", mod
+				print "\t\t\tBranch:", stats['categories'][cat][mod]['branch']
+				for resource in stats['categories'][cat][mod]['resource']:
 					print "\t\t\t\tID:", resource['id'], "Type:", resource['type']
 					print "\t\t\t\t\tPOFile:", resource['pofile']
 					print "\t\t\t\t\tVCSPath:", resource['vcspath']
 					pofilename = resource['pofile'].rpartition('/')[2]
 					vcspathtemp = resource['vcspath'].replace('/viewvc/', '/svn/')
 					vcspath = vcspathtemp.replace('http://', 'svn+ssh://' + self.username + '@')
-					branch = stats['categories'][category][module]['branch']
-					CMD1 = 'svn co ' + vcspath + ' VCS/' + module + '@' + branch
+					branch = stats['categories'][cat][mod]['branch']
+					CMD1 = 'svn co ' + vcspath + ' VCS/' + mod + '@' + branch
 					CMD2 = 'wget http://l10n.gnome.org' + resource['pofile'] + ' -O PO/' + pofilename
-					CMD3 = 'ln -s ../VCS/' + module + '@' + branch + '/' + language + '.po LINKS/' + pofilename
-					print "\t\t\t\t\tCMD:", CMD1
-					print "\t\t\t\t\tCMD:", CMD2
-					print "\t\t\t\t\tCMD:", CMD3
+					CMD3 = 'ln -s ../VCS/' + mod + '@' + branch + '/' + language + '.po LINKS/' + pofilename
+					#print "\t\t\t\t\tCMD:", CMD1
+					#print "\t\t\t\t\tCMD:", CMD2
+					#print "\t\t\t\t\tCMD:", CMD3
 					#os.system(CMD1)
 					#os.system(CMD2)
 					#os.system(CMD3)
@@ -213,10 +228,12 @@ class GNOMEI18nManage:
 		print PROGNAME, 'a tool that helps manage translation files from a VCS'
 	        print """Available parameters:
    	    	 -h     --help              this craft
-		 -l LL  --language LL       language code per ISO 639
-		 -r REL --release REL       release REL (such as 'gnome-2-26')
+		 -c CAT --category CAT     i18n category name CAT (such as 'desktop')
+		 -m MOD --module MOD       i18n module name MOD (such as 'gnome-games')
+		 -l LL  --language LL       language code per ISO 639 (REQUIRED)
+		 -r REL --release REL       release REL (such as 'gnome-2-26') (REQUIRED)
        		 -s     --status            show status
-		 -u USR --username USR      username USR (corresponds to SVN/GIT GNOME account)
+		 -u USR --username USR      username USR (corresponds to SVN/GIT GNOME account) (REQUIRED)
        		 -v     --verbose           show verbose output
 
         	Default is to show this help text."""
