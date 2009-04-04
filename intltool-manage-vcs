@@ -208,6 +208,12 @@ class GNOMEI18nManage:
 			self.apply_translation_changes()
 			sys.exit(0)
 
+		if self.opt_commit:
+			if self.is_empty():
+				print "Directories are empty, cannot commit translation changes; exiting"
+				sys.exit(-3)
+			self.do_commit()
+
 		if self.opt_init and (self.language == '' or self.release == '' or self.username == ''):
 			print "Error: Required parameter(s) missing for initialisation"
 			self.usage()
@@ -233,6 +239,17 @@ class GNOMEI18nManage:
 				if not self.opt_quiet:
 					print "Copying", self.dir_po + pofile, "to", self.dir_links + pofile
 				shutil.copyfile(self.dir_po + pofile, self.dir_links + pofile)
+
+	def do_commit(self):
+		dircontents = dircache.listdir(self.dir_vcs)
+		dircontents = dircontents[:]
+		dircontents.remove(self.file_README)	
+		for vcsdir in dircontents:
+			if not self.opt_quiet:
+				print "Committing in", self.dir_vcs + vcsdir
+			cmd_commit = 'svn commit -m ' + '"Updated ' + self.language + ' translation"'
+			cmd_changedir = 'chdir ' + self.dir_vcs + vcsdir
+			os.system(cmd_changedir + ';' + cmd_commit)
 
 	def is_empty(self):
 		for dir in [self.dir_po, self.dir_vcs, self.dir_links]:
