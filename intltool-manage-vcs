@@ -156,6 +156,10 @@ class GNOMEI18nManage:
 	opt_svnquiet = False
 
 	def __init__(self, argv):
+		if not argv[1:]:
+			self.usage()
+			sys.exit(0)
+
 		try:
 		        opts, args = getopt.getopt(argv[1:], "abc:dhil:qr:st:u:", ["apply", "blank", 
 							"category=", "commit", "dryrun", "dry-run", "help", 
@@ -165,7 +169,6 @@ class GNOMEI18nManage:
 			print "Error", err
         		self.usage()
         		sys.exit(0)
-
 
 		for o, a in opts:
         		if o in ("-a", "--apply"):
