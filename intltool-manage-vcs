@@ -405,8 +405,10 @@ class GNOMEI18nManage:
 					     and --username are REQUIRED.
 		 -m MOD --module MOD        i18n module name MOD (such as 'gnome-games')
 		 -l LL  --language LL       language code per ISO 639
+		 -q     --quiet		    Be quiet
 		 -r REL --release REL       release REL (such as 'gnome-2-26')
        		 -s     --status            show status
+		        --svnquiet	    Add --quiet to the SVN checkouts
 		 -t	--transtype=TYPE    optionally specify translation type, either ui or doc
 		 -u USR --username USR      username USR (corresponds to SVN/GIT GNOME account)
        		 -v     --verbose           show verbose output
