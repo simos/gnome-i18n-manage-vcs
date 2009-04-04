@@ -17,10 +17,12 @@
 # Author  : Simos Xenitellis <simos@gnome.org>
 # Version : 0.8
 
-import sys		# sys.argv, sys.exit()
+import dircache		# dircache.listdir()
 import os		# os.system(), os.remove()
 import getopt		# getopt.getopt()
+import sys		# sys.argv, sys.exit()
 import urllib		# urllib.urlretrieve()
+
 from lxml import etree  # etree.XMLParser(), etree.XML()
 
 PROGNAME='intltool-manage-vcs'
@@ -136,14 +138,22 @@ class GNOMEI18nManage:
 	xmlurl = ''
 	xmlfilename = ''
 
+	dir_po = 'PO/'
+	dir_vcs = 'VCS/'
+	dir_links = 'LINKS/'
+	file_START = 'START'
+	file_README = 'README'
+
+	opt_init = False
+	opt_blank = False
 	opt_quiet = False
 	opt_status = False
 
 	def __init__(self, argv):
 		try:
-		        opts, args = getopt.getopt(argv[1:], "hl:qr:su:", ["help", "category=", "module=",
-							"language=", "quiet", "release=", "status", 
-							"username=" ])
+		        opts, args = getopt.getopt(argv[1:], "bc:hil:qr:su:", ["blank", "category=", "help", 
+							"init", "module=", "language=", "quiet", 
+							"release=", "status", "username=" ])
 		except getopt.GetoptError, err:
 			print "Error", err
         		self.usage()
@@ -151,11 +161,15 @@ class GNOMEI18nManage:
 
 
 		for o, a in opts:
+        		if o in ("-b", "--blank"):
+                		self.opt_blank = True
+        		if o in ("-c", "--category"):
+                		self.category = a
 		        if o in ("-h", "--help"):
        		  	     	usage()
                 	     	sys.exit()
-        		if o in ("-c", "--category"):
-                		self.category = a
+        		if o in ("-i", "--init"):
+                		self.opt_init = True
         		if o in ("-m", "--module"):
                 		self.module = a
         		if o in ("-l", "--language"):
@@ -169,33 +183,44 @@ class GNOMEI18nManage:
         		if o in ("-u", "--username"):
                 		self.username = a
 
-		if self.language == '' or self.release == '' or self.username == '':
-			print "Error: Required parameters missing"
+		if self.opt_init and (self.language == '' or self.release == '' or self.username == ''):
+			print "Error: Required parameter(s) missing for initialisation"
 			self.usage()
 			sys.exit(-1)
 
+		if self.opt_init:
+			self.init()
+
+		if self.is_empty():
+			print "Dir are empty"
+		else:
+			print "Dir not empty"
+
+		sys.exit(0)
+
+	def is_empty(self):
+		for dir in [self.dir_po, self.dir_vcs, self.dir_links]:
+			dircontents = dircache.listdir(dir)
+			dircontents.remove(self.file_README)	
+			if dircontents:
+				return False
+		return True
+
+	def init(self):	
+		self.process_stats('print')
+
+	def process_stats(self, action):	
 		self.xmlurl = "http://l10n.gnome.org/languages/" + self.language + "/gnome-2-26/xml"
 		self.xmlfilename = self.download_file(self.xmlurl)
 
-		try:
-			xmlfile = open(self.xmlfilename, 'r')
-			xmlfile.close
-		except OSError:
-			print "Could not open file ", xmlfilename, ". Aborting..."
-			sys.exit(-1)
-	
-		contents = "".join(xmlfile.readlines())
-		
-		mytarget = GNOMEI18nTarget()
-		parser = etree.XMLParser(target = mytarget)
-		result = etree.XML(contents, parser)
-	
-		stats = mytarget.get_stats()
+		stats = self.parse_gnome_xml_file(self.xmlfilename)
 	
 		release = stats['release']
 		language = stats['language']
 		print "Release  :", release
 		print "Language :", language
+		print "Touching current time at", self.dir_po + self.file_START
+		os.system("touch " + self.dir_po + self.file_START)
 		for cat in stats['categories'].keys():
 			if self.category != '' and cat != self.category:
 				continue
@@ -213,27 +238,52 @@ class GNOMEI18nManage:
 					vcspathtemp = resource['vcspath'].replace('/viewvc/', '/svn/')
 					vcspath = vcspathtemp.replace('http://', 'svn+ssh://' + self.username + '@')
 					branch = stats['categories'][cat][mod]['branch']
-					CMD1 = 'svn co ' + vcspath + ' VCS/' + mod + '@' + branch
-					CMD2 = 'wget http://l10n.gnome.org' + resource['pofile'] + ' -O PO/' + pofilename
-					CMD3 = 'ln -s ../VCS/' + mod + '@' + branch + '/' + language + '.po LINKS/' + pofilename
-					#print "\t\t\t\t\tCMD:", CMD1
-					#print "\t\t\t\t\tCMD:", CMD2
-					#print "\t\t\t\t\tCMD:", CMD3
-					#os.system(CMD1)
-					#os.system(CMD2)
-					#os.system(CMD3)
+					CMD1 = 'svn co ' + vcspath + self.dir_vcs + mod + '@' + branch
+					CMD2 = 'wget http://l10n.gnome.org' + resource['pofile'] + \
+						' -O ' + self.dir_po + pofilename
+					CMD3 = 'ln -s ../' + self.dir_vcs + mod + '@' + branch + '/' + \
+						language + '.po ' + self.dir_links + pofilename
+					if action == 'print':
+						print "\t\t\t\t\tCMD:", CMD1
+						print "\t\t\t\t\tCMD:", CMD2
+						print "\t\t\t\t\tCMD:", CMD3
+					elif action == 'execute':
+						print "\t\t\t\t\tCMD:", CMD1
+						os.system(CMD1)
+						print "\t\t\t\t\tCMD:", CMD2
+						os.system(CMD2)
+						print "\t\t\t\t\tCMD:", CMD3
+						os.system(CMD3)
 	
+	def parse_gnome_xml_file(self, filename):
+		try:
+			xmlfile = open(filename, 'r')
+			xmlfile.close
+		except OSError:
+			print "Could not open file ", filename, ". Aborting..."
+			sys.exit(-1)
 	
+		contents = "".join(xmlfile.readlines())
+		
+		mytarget = GNOMEI18nTarget()
+		parser = etree.XMLParser(target = mytarget)
+		result = etree.XML(contents, parser)
+	
+		return mytarget.get_stats()
+
 	def usage(self):
 		print PROGNAME, 'a tool that helps manage translation files from a VCS'
 	        print """Available parameters:
+   	    	 -b     --blank             blanks and clears the downloaded files
+		 -c CAT --category CAT      i18n category name CAT (such as 'desktop')
    	    	 -h     --help              this craft
-		 -c CAT --category CAT     i18n category name CAT (such as 'desktop')
-		 -m MOD --module MOD       i18n module name MOD (such as 'gnome-games')
-		 -l LL  --language LL       language code per ISO 639 (REQUIRED)
-		 -r REL --release REL       release REL (such as 'gnome-2-26') (REQUIRED)
+		 -i     --init              when initialising, --language, --release, 
+					     and --username are REQUIRED.
+		 -m MOD --module MOD        i18n module name MOD (such as 'gnome-games')
+		 -l LL  --language LL       language code per ISO 639
+		 -r REL --release REL       release REL (such as 'gnome-2-26')
        		 -s     --status            show status
-		 -u USR --username USR      username USR (corresponds to SVN/GIT GNOME account) (REQUIRED)
+		 -u USR --username USR      username USR (corresponds to SVN/GIT GNOME account)
        		 -v     --verbose           show verbose output
 
         	Default is to show this help text."""
