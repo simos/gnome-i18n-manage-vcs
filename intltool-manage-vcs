@@ -20,6 +20,7 @@
 import dircache		# dircache.listdir()
 import os		# os.system(), os.remove()
 import getopt		# getopt.getopt()
+import shutil		# shutil.rmtree()
 import sys		# sys.argv, sys.exit()
 import urllib		# urllib.urlretrieve()
 
@@ -148,12 +149,13 @@ class GNOMEI18nManage:
 	opt_blank = False
 	opt_quiet = False
 	opt_status = False
+	opt_svnquiet = False
 
 	def __init__(self, argv):
 		try:
 		        opts, args = getopt.getopt(argv[1:], "bc:hil:qr:su:", ["blank", "category=", "help", 
 							"init", "module=", "language=", "quiet", 
-							"release=", "status", "username=" ])
+							"release=", "status", "svnquiet", "username=" ])
 		except getopt.GetoptError, err:
 			print "Error", err
         		self.usage()
@@ -180,6 +182,8 @@ class GNOMEI18nManage:
 			 	self.release = a
      			if o in ("-s", "--status"):
 				opt_status = True
+     			if o in ("--svnquiet"):
+				opt_svnquiet = True
         		if o in ("-u", "--username"):
                 		self.username = a
 
@@ -191,23 +195,45 @@ class GNOMEI18nManage:
 		if self.opt_init:
 			self.init()
 
+		if self.opt_blank:
+			self.do_blank()
+
 		if self.is_empty():
-			print "Dir are empty"
+			print "Dirs are empty"
 		else:
-			print "Dir not empty"
+			print "Dirs not empty"
 
 		sys.exit(0)
 
 	def is_empty(self):
 		for dir in [self.dir_po, self.dir_vcs, self.dir_links]:
 			dircontents = dircache.listdir(dir)
+			dircontents = dircontents[:]
 			dircontents.remove(self.file_README)	
 			if dircontents:
 				return False
 		return True
 
+	def do_blank(self):
+		for dir in [self.dir_po, self.dir_vcs, self.dir_links]:
+			dircontents = dircache.listdir(dir)
+			dircontents = dircontents[:]
+			dircontents.remove(self.file_README)	
+			if dircontents:
+				for item in dircontents:
+					if os.path.isdir(dir + item):
+						if not self.opt_quiet:
+							print "Removing directory tree", dir + item
+						shutil.rmtree(dir + item)
+					else:
+						if not self.opt_quiet:
+							print "Removing file", dir + item
+						os.remove(dir + item)
+			if not self.opt_quiet:
+				print
+
 	def init(self):	
-		self.process_stats('print')
+		self.process_stats('execute')
 
 	def process_stats(self, action):	
 		self.xmlurl = "http://l10n.gnome.org/languages/" + self.language + "/gnome-2-26/xml"
@@ -219,8 +245,6 @@ class GNOMEI18nManage:
 		language = stats['language']
 		print "Release  :", release
 		print "Language :", language
-		print "Touching current time at", self.dir_po + self.file_START
-		os.system("touch " + self.dir_po + self.file_START)
 		for cat in stats['categories'].keys():
 			if self.category != '' and cat != self.category:
 				continue
@@ -238,16 +262,25 @@ class GNOMEI18nManage:
 					vcspathtemp = resource['vcspath'].replace('/viewvc/', '/svn/')
 					vcspath = vcspathtemp.replace('http://', 'svn+ssh://' + self.username + '@')
 					branch = stats['categories'][cat][mod]['branch']
-					CMD1 = 'svn co ' + vcspath + self.dir_vcs + mod + '@' + branch
-					CMD2 = 'wget http://l10n.gnome.org' + resource['pofile'] + \
-						' -O ' + self.dir_po + pofilename
-					CMD3 = 'ln -s ../' + self.dir_vcs + mod + '@' + branch + '/' + \
-						language + '.po ' + self.dir_links + pofilename
+					if self.opt_svnquiet:
+						CMD1 = 'svn --quiet co ' + vcspath + ' ' + self.dir_vcs + mod + '@' + branch
+						CMD2 = 'wget --quiet http://l10n.gnome.org' + resource['pofile'] + \
+							' -O ' + self.dir_po + pofilename
+						CMD3 = 'ln --verbose -s ../' + self.dir_vcs + mod + '@' + branch + '/' + \
+							language + '.po ' + self.dir_links + pofilename
+					else:
+						CMD1 = 'svn co ' + vcspath + ' ' + self.dir_vcs + mod + '@' + branch
+						CMD2 = 'wget http://l10n.gnome.org' + resource['pofile'] + \
+							' -O ' + self.dir_po + pofilename
+						CMD3 = 'ln -s ../' + self.dir_vcs + mod + '@' + branch + '/' + \
+							language + '.po ' + self.dir_links + pofilename
 					if action == 'print':
 						print "\t\t\t\t\tCMD:", CMD1
 						print "\t\t\t\t\tCMD:", CMD2
 						print "\t\t\t\t\tCMD:", CMD3
 					elif action == 'execute':
+						print "Touching current time at", self.dir_po + self.file_START
+						os.system("touch " + self.dir_po + self.file_START)
 						print "\t\t\t\t\tCMD:", CMD1
 						os.system(CMD1)
 						print "\t\t\t\t\tCMD:", CMD2
