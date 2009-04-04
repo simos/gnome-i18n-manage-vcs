@@ -326,9 +326,10 @@ class GNOMEI18nManage:
 					if self.transtype: 
 						if resource['id'] not in self.transtype:
 							continue
-					print "\t\t\t\tID:", resource['id'], "Type:", resource['type']
-					print "\t\t\t\t\tPOFile:", resource['pofile']
-					print "\t\t\t\t\tVCSPath:", resource['vcspath']
+					if not self.opt_quiet:
+						print "\t\t\t\tID:", resource['id'], "Type:", resource['type']
+						print "\t\t\t\t\tPOFile:", resource['pofile']
+						print "\t\t\t\t\tVCSPath:", resource['vcspath']
 					pofilename = resource['pofile'].rpartition('/')[2]
 					vcspathtemp = resource['vcspath'].replace('/viewvc/', '/svn/')
 					vcspath = vcspathtemp.replace('http://', 'svn+ssh://' + self.username + '@')
@@ -354,7 +355,7 @@ class GNOMEI18nManage:
 							'/' + alignment + language + '.po ' + \
 							self.dir_links + pofilename
 
-					if action == 'print':
+					if action == 'print' and not self.opt_quiet:
 						print "\t\t\t\t\tCMD:", CMD1
 						print "\t\t\t\t\tCMD:", CMD2
 						print "\t\t\t\t\tCMD:", CMD3
