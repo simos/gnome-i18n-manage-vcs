@@ -158,7 +158,7 @@ class GNOMEI18nManage:
 	def __init__(self, argv):
 		try:
 		        opts, args = getopt.getopt(argv[1:], "abc:dhil:qr:st:u:", ["apply", "blank", 
-							"category=", "commit", "dryrun", "help", 
+							"category=", "commit", "dryrun", "dry-run", "help", 
 							"init", "module=", "language=", "quiet", 
 							"release=", "status", "svnquiet", "transtype=", "username=" ])
 		except getopt.GetoptError, err:
@@ -176,7 +176,7 @@ class GNOMEI18nManage:
                 		self.category = a
         		if o in ("--commit"):
                 		self.opt_commit = True
-        		if o in ("--dryrun"):
+        		if o in ("--dryrun", "--dry-run"):
                 		self.opt_dryrun = True
 		        if o in ("-h", "--help"):
        		  	     	self.usage()
@@ -381,6 +381,7 @@ class GNOMEI18nManage:
    	    	 -b     --blank             blanks and clears the downloaded files
 		 -c CAT --category CAT      i18n category name CAT (such as 'desktop')
 		        --commit	    commit changes in repositories
+		 -d	--dry-run	    do not really checkout/commit/apply 
    	    	 -h     --help              this craft
 		 -i     --init              when initialising, --language, --release, 
 					     and --username are REQUIRED.
