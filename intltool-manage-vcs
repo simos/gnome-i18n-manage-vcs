@@ -337,20 +337,21 @@ class GNOMEI18nManage:
 					if resource['type'] == 'help':
 						alignment = 'el/'
 						print "Setting alignment to ", alignment
+					localsvnname = mod + '@' + resource['type'] + '@' + branch
 
 					if self.opt_svnquiet:
-						CMD1 = 'svn co --quiet ' + vcspath + ' ' + self.dir_vcs + mod + '@' + branch
+						CMD1 = 'svn co --quiet ' + vcspath + ' ' + self.dir_vcs + localsvnname
 						CMD2 = 'wget --quiet http://l10n.gnome.org' + resource['pofile'] + \
 							' -O ' + self.dir_po + pofilename
-						CMD3 = 'ln -s ../' + self.dir_vcs + mod + '@' + \
-							branch + '/' + alignment + language + '.po ' + \
+						CMD3 = 'ln -s ../' + self.dir_vcs + localsvnname + \
+							'/' + alignment + language + '.po ' + \
 							self.dir_links + pofilename
 					else:
-						CMD1 = 'svn co ' + vcspath + ' ' + self.dir_vcs + mod + '@' + branch
+						CMD1 = 'svn co ' + vcspath + ' ' + self.dir_vcs + localsvnname
 						CMD2 = 'wget http://l10n.gnome.org' + resource['pofile'] + \
 							' -O ' + self.dir_po + pofilename
-						CMD3 = 'ln --verbose -s ../' + self.dir_vcs + mod + '@' + \
-							branch + '/' + alignment + language + '.po ' + \
+						CMD3 = 'ln --verbose -s ../' + self.dir_vcs + localsvnname + \
+							'/' + alignment + language + '.po ' + \
 							self.dir_links + pofilename
 
 					if action == 'print':
