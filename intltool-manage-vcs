@@ -18,7 +18,9 @@
 # Version : 0.8
 
 import sys		# sys.argv, sys.exit()
-import os		# os.system()
+import os		# os.system(), os.remove()
+import getopt		# getopt.getopt()
+import urllib		# urllib.urlretrieve()
 from lxml import etree  # etree.XMLParser(), etree.XML()
 
 PROGNAME='intltool-manage-vcs'
@@ -124,12 +126,42 @@ class GNOMEI18nTarget:
 		return self.stats
 
 class GNOMEI18nManage:
-	xmlfilename = "el.xml"
-	MYUSERNAME = 'simos'
+	language = ''
+	username = ''
+	release = ''
+
+	xmlurl = ''
+
+	opt_quiet = False
+	opt_status = False
 
 	def __init__(self, argv):
-		self.parse_cli_arguments()
-		sys.exit(-1)
+		try:
+		        opts, args = getopt.getopt(argv[1:], "hl:qr:su:", ["help", "language=", 
+							"quiet", "release=", "status", "username=" ])
+		except getopt.GetoptError, err:
+			print "Error", err
+        		self.usage()
+        		sys.exit(0)
+
+
+		for o, a in opts:
+		        if o in ("-h", "--help"):
+       		  	     	usage()
+                	     	sys.exit()
+        		if o in ("-l", "--language"):
+                		self.language = a
+        		if o in ("-q", "--quiet"):
+                		self.opt_quiet = True
+			if o in ("-r", "--release"):
+			 	self.release = a
+     			if o in ("-s", "--status"):
+				opt_status = True
+        		if o in ("-u", "--username"):
+                		self.username = a
+
+		self.xmlurl = "http://l10n.gnome.org/languages/" + self.language + "/gnome-2-26/xml"
+		self.download_file(self.xmlurl)
 
 		if len(argv) > 1:
 			xmlfilename = argv[1]
@@ -164,7 +196,7 @@ class GNOMEI18nManage:
 					print "\t\t\t\t\tVCSPath:", resource['vcspath']
 					pofilename = resource['pofile'].rpartition('/')[2]
 					vcspathtemp = resource['vcspath'].replace('/viewvc/', '/svn/')
-					vcspath = vcspathtemp.replace('http://', 'svn+ssh://' + MYUSERNAME + '@')
+					vcspath = vcspathtemp.replace('http://', 'svn+ssh://' + self.username + '@')
 					branch = stats['categories'][category][module]['branch']
 					CMD1 = 'svn co ' + vcspath + ' VCS/' + module + '@' + branch
 					CMD2 = 'wget http://l10n.gnome.org' + resource['pofile'] + ' -O PO/' + pofilename
@@ -180,63 +212,50 @@ class GNOMEI18nManage:
 	def usage(self):
 		print PROGNAME, 'a tool that helps manage translation files from a VCS'
 	        print """Available parameters:
-   	    	 -h, --help              this craft
-       		 -s, --statistics        show overall statistics
-       		 -v, --verbose           show verbose output
+   	    	 -h     --help              this craft
+		 -l LL  --language LL       language code per ISO 639
+		 -r REL --release REL       release REL (such as 'gnome-2-26')
+       		 -s     --status            show status
+		 -u USR --username USR      username USR (corresponds to SVN/GIT GNOME account)
+       		 -v     --verbose           show verbose output
 
-        	Default is to show statistics."""
-
-	def parse_cli_arguments(self):
-		try:
-		        opts, args = getopt.getopt(sys.argv[1:], "hsv", ["help", "statistics", 
-        						        "stats", "verbose" ])
-		except:
-        		self.usage()
-        		sys.exit(0)
-
-		opt_statistics = False
-		opt_verbose = False
-
-		for o, a in opts:
-		        if o in ("-h", "--help"):
-       		  	     	usage()
-                	     	sys.exit()
-     			if o in ("-s", "--statistics"):
-				opt_statistics = True
-        		if o in ("-v", "--verbose"):
-                		opt_verbose = True
+        	Default is to show this help text."""
 
 	def download_hook(self, blocks_transferred, block_size, file_size):
 	        """ A download hook to provide some feedback when downloading """
 	        if blocks_transferred == 0:
 	                if file_size > 0:
-       		                 if opt_verbose:
+       		                 if not self.opt_quiet:
                 	                print "Downloading", file_size, "bytes: ",
                		else:
-                        	if opt_verbose:
+                        	if not self.opt_quiet:
                                 	print "Downloading: ",
-        	sys.stdout.write('#')
-        	sys.stdout.flush()
+		if not opt_quiet:
+        		sys.stdout.write('#')
+        		sys.stdout.flush()
 
 
-	def download_file(url):
+	def download_file(self, url):
 	        """ Downloads a file provided a URL. Returns the filename. """
 	        """ Borks on failure """
-	        localfilename = url.split('/')[-1]
-	        if not isfile(localfilename) or getsize(localfilename) <= 0:
-	                if opt_verbose:
+	        localfilename = 'managevcs-' + self.language + '-' + self.release + '.' + url.split('/')[-1]
+	        if not os.path.isfile(localfilename) or os.path.getsize(localfilename) <= 0:
+	                if not self.opt_quiet:
 	                        print "Downloading ", url, "..."
 	                try:
-	                        urlretrieve(url, localfilename, download_hook)
+				if os.path.getsize(localfilename) <= 0:
+					os.remove(localfilename)
+	                        urllib.urlretrieve(url, localfilename, self.download_hook)
 	                except IOError, (errno, strerror):
 	                        print "I/O error(%s): %s" % (errno, strerror)
 	                        sys.exit(-1)
 	                except:
 	                        print "Unexpected error: ", sys.exc_info()[0]
 	                        sys.exit(-1)
-	                print " done."
+			if not opt_quiet:
+	                	print " done."
 	        else:
-	                if opt_verbose:
+	                if not self.opt_quiet:
         	                print "Using cached file for ", url
 	        return localfilename
 
