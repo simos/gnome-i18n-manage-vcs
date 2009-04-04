@@ -18,7 +18,7 @@
 # Version : 0.8
 
 import dircache		# dircache.listdir()
-import os		# os.system(), os.remove()
+import os		# os.system(), os.remove(), os.path.gmtime()
 import getopt		# getopt.getopt()
 import shutil		# shutil.rmtree()
 import sys		# sys.argv, sys.exit()
@@ -145,6 +145,8 @@ class GNOMEI18nManage:
 	file_START = 'START'
 	file_README = 'README'
 
+	opt_apply = False
+	opt_commit = False
 	opt_init = False
 	opt_blank = False
 	opt_quiet = False
@@ -153,7 +155,8 @@ class GNOMEI18nManage:
 
 	def __init__(self, argv):
 		try:
-		        opts, args = getopt.getopt(argv[1:], "bc:hil:qr:su:", ["blank", "category=", "help", 
+		        opts, args = getopt.getopt(argv[1:], "abc:hil:qr:su:", ["apply", "blank", 
+							"category=", "commit", "help", 
 							"init", "module=", "language=", "quiet", 
 							"release=", "status", "svnquiet", "username=" ])
 		except getopt.GetoptError, err:
@@ -163,12 +166,16 @@ class GNOMEI18nManage:
 
 
 		for o, a in opts:
+        		if o in ("-a", "--apply"):
+                		self.opt_apply = True
         		if o in ("-b", "--blank"):
                 		self.opt_blank = True
         		if o in ("-c", "--category"):
                 		self.category = a
+        		if o in ("--commit"):
+                		self.opt_commit = True
 		        if o in ("-h", "--help"):
-       		  	     	usage()
+       		  	     	self.usage()
                 	     	sys.exit()
         		if o in ("-i", "--init"):
                 		self.opt_init = True
@@ -187,6 +194,20 @@ class GNOMEI18nManage:
         		if o in ("-u", "--username"):
                 		self.username = a
 
+		if self.opt_status:
+			if self.is_empty():
+				print "Directories are empty"
+			else:
+				print "Directories are not empty"
+			sys.exit(0)
+
+		if self.opt_apply:
+			if self.is_empty():
+				print "Directories are empty, cannot apply translation changes; exiting"
+				sys.exit(-3)
+			self.apply_translation_changes()
+			sys.exit(0)
+
 		if self.opt_init and (self.language == '' or self.release == '' or self.username == ''):
 			print "Error: Required parameter(s) missing for initialisation"
 			self.usage()
@@ -202,12 +223,16 @@ class GNOMEI18nManage:
 		if self.opt_blank:
 			self.do_blank()
 
-		if self.is_empty():
-			print "Dirs are empty"
-		else:
-			print "Dirs not empty"
-
-		sys.exit(0)
+	def apply_translation_changes(self):
+		dircontents = dircache.listdir(self.dir_po)
+		dircontents = dircontents[:]
+		dircontents.remove(self.file_README)	
+		start_time = os.stat(self.dir_po + self.file_START).st_mtime
+		for pofile in dircontents:
+			if start_time < os.stat(self.dir_po + pofile).st_mtime:
+				if not self.opt_quiet:
+					print "Copying", self.dir_po + pofile, "to", self.dir_links + pofile
+				shutil.copyfile(self.dir_po + pofile, self.dir_links + pofile)
 
 	def is_empty(self):
 		for dir in [self.dir_po, self.dir_vcs, self.dir_links]:
@@ -311,8 +336,10 @@ class GNOMEI18nManage:
 	def usage(self):
 		print PROGNAME, 'a tool that helps manage translation files from a VCS'
 	        print """Available parameters:
+   	    	 -a     --apply             copy changed translations to repositories
    	    	 -b     --blank             blanks and clears the downloaded files
 		 -c CAT --category CAT      i18n category name CAT (such as 'desktop')
+		        --commit	    commit changes in repositories
    	    	 -h     --help              this craft
 		 -i     --init              when initialising, --language, --release, 
 					     and --username are REQUIRED.
