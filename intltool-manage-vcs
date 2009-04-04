@@ -334,7 +334,7 @@ class GNOMEI18nManage:
 					vcspath = vcspathtemp.replace('http://', 'svn+ssh://' + self.username + '@')
 					branch = stats['categories'][cat][mod]['branch']
 					alignment = ''
-					if resource['type'] == 'help':
+					if resource['type'] == 'help' or resource['id'] == 'document':
 						alignment = 'el/'
 						print "Setting alignment to ", alignment
 					localsvnname = mod + '@' + resource['type'] + '@' + branch
