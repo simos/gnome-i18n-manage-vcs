@@ -378,11 +378,12 @@ class GNOMEI18nManage:
 						if self.opt_verbose:
 							print "\t\t\t\tTouching current time at", self.dir_po + self.file_START
 						os.system("touch " + self.dir_po + self.file_START)
-						#print "\t\t\t\t\tCMD:", CMD1
+						print "Retrieving module", mod, "of type", resource['id'] + "...",
+        					sys.stdout.flush()
 						os.system(CMD1)
-						#print "\t\t\t\t\tCMD:", CMD2
+						print "                                                                  \r",
+        					sys.stdout.flush()
 						os.system(CMD2)
-						#print "\t\t\t\t\tCMD:", CMD3
 						os.system(CMD3)
 						try:
 							os.stat(self.dir_links + pofilename)
@@ -392,6 +393,8 @@ class GNOMEI18nManage:
 							print "Please clear the mess with --blank and check the source"
 							print "Now exiting..."
 							sys.exit(-5)
+		print "                                                     "
+		print "Download completed succesfully."
 	
 	def parse_gnome_xml_file(self, filename):
 		try:
