@@ -24,7 +24,13 @@ import shutil		# shutil.rmtree()
 import sys		# sys.argv, sys.exit()
 import urllib		# urllib.urlretrieve()
 
-from lxml import etree  # etree.XMLParser(), etree.XML()
+try:
+	from lxml import etree  # etree.XMLParser(), etree.XML()
+except ImportError, err:
+	print "Import error:", err
+	print "This script requires to have the python-lxml package installed"
+	print "Please install the package python-lxml and try again.\nExiting..."
+	sys.exit(-10)
 
 PROGNAME='intltool-manage-vcs'
 
