@@ -152,7 +152,6 @@ class GNOMEI18nManage:
 	file_START = 'START'
 	file_README = 'README'
 
-	opt_apply = False
 	opt_commit = False
 	opt_dryrun = False
 	opt_init = False
@@ -167,7 +166,7 @@ class GNOMEI18nManage:
 			sys.exit(0)
 
 		try:
-		        opts, args = getopt.getopt(argv[1:], "abc:dhil:qr:st:u:", ["apply", "blank", 
+		        opts, args = getopt.getopt(argv[1:], "abc:dhil:qr:st:u:", ["blank", 
 							"category=", "commit", "dryrun", "dry-run", "help", 
 							"init", "module=", "language=",
 							"release=", "status", "svnverbose", "transtype=", 
@@ -178,8 +177,6 @@ class GNOMEI18nManage:
         		sys.exit(0)
 
 		for o, a in opts:
-        		if o in ("-a", "--apply"):
-                		self.opt_apply = True
         		if o in ("-b", "--blank"):
                 		self.opt_blank = True
         		if o in ("-c", "--category"):
@@ -223,17 +220,11 @@ class GNOMEI18nManage:
 				print "Directories are not empty"
 			sys.exit(0)
 
-		if self.opt_apply:
-			if self.is_empty():
-				print "Directories are empty, cannot apply translation changes; exiting"
-				sys.exit(-3)
-			self.apply_translation_changes()
-			sys.exit(0)
-
 		if self.opt_commit:
 			if self.is_empty():
 				print "Directories are empty, cannot commit translation changes; exiting"
 				sys.exit(-3)
+			self.apply_translation_changes()
 			self.do_commit()
 
 		if self.opt_init and (self.language == '' or self.release == '' or self.username == ''):
@@ -258,6 +249,12 @@ class GNOMEI18nManage:
 		start_time = os.stat(self.dir_po + self.file_START).st_mtime
 		for pofile in dircontents:
 			if start_time < os.stat(self.dir_po + pofile).st_mtime:
+				try:
+					os.stat(self.dir_links + pofile)
+				except OSError, err:
+					print "You do not have an initial translation for", pofile
+					print " Please perform the commit manually. We welcome patches\n"
+					print " to implement automatic addition of new translations."
 				if self.opt_verbose:
 					print "Copying", self.dir_po + pofile, "to", self.dir_links + pofile
 				if not self.opt_dryrun:
@@ -357,6 +354,9 @@ class GNOMEI18nManage:
 					else:
 						CMD1 = 'svn co --quiet ' + vcspath + ' ' + self.dir_vcs + localsvnname
 
+					if pofilename[-4:] == '.pot':
+						pofilename = pofilename[:-1]
+
 					if self.opt_verbose:
 						CMD2 = 'wget http://l10n.gnome.org' + resource['pofile'] + \
 							' -O ' + self.dir_po + pofilename
@@ -385,14 +385,14 @@ class GNOMEI18nManage:
         					sys.stdout.flush()
 						os.system(CMD2)
 						os.system(CMD3)
-						try:
-							os.stat(self.dir_links + pofilename)
-						except OSError, err:
-							print "ERROR: We did not create the link properly"
-							print "This is an internal error in the script"
-							print "Please clear the mess with --blank and check the source"
-							print "Now exiting..."
-							sys.exit(-5)
+						#try:
+						#	os.stat(self.dir_links + pofilename)
+						#except OSError, err:
+						#	print "ERROR: We did not create the link properly"
+						#	print "This is an internal error in the script"
+						#	print "Please clear the mess with --blank and check the source"
+						#	print "Now exiting..."
+						#	sys.exit(-5)
 		print "                                                     "
 		print "Download completed succesfully."
 	
@@ -415,11 +415,10 @@ class GNOMEI18nManage:
 	def usage(self):
 		print PROGNAME, 'a tool that helps manage translation files from a VCS'
 	        print """Available parameters:
-   	    	 -a     --apply             copy changed translations to repositories
    	    	 -b     --blank             blanks and clears the downloaded files
 		 -c CAT --category CAT      i18n category name CAT (such as 'desktop')
 		        --commit	    commit changes in repositories
-		 -d	--dry-run	    do not really checkout/commit/apply 
+		 -d	--dry-run	    do not really checkout/commit
    	    	 -h     --help              this craft
 		 -i     --init              when initialising, --language, --release, 
 					     and --username are REQUIRED.
