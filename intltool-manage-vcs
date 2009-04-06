@@ -308,6 +308,12 @@ class GNOMEI18nManage:
 		self.xmlurl = "http://l10n.gnome.org/languages/" + self.language + "/gnome-2-26/xml"
 		self.xmlfilename = self.download_file(self.xmlurl)
 
+		# An error page is about 2.5KB, a proper XML file is circa 50KB.
+		if os.path.getsize(self.xmlfilename) < 5000:
+			print "Language", self.language, "was not found.\nExiting..."
+			os.remove(self.xmlfilename)
+			sys.exit(-7)
+
 		stats = self.parse_gnome_xml_file(self.xmlfilename)
 	
 		release = stats['release']
