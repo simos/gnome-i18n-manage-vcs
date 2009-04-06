@@ -327,9 +327,9 @@ class GNOMEI18nManage:
 						if resource['id'] not in self.transtype:
 							continue
 					if self.opt_verbose:
-						print "\t\t\t\tID:", resource['id'], "Type:", resource['type']
-						print "\t\t\t\t\tPOFile:", resource['pofile']
-						print "\t\t\t\t\tVCSPath:", resource['vcspath']
+						print "        ID:", resource['id'], "Type:", resource['type']
+						print "          POFile:", resource['pofile']
+						print "          VCSPath:", resource['vcspath']
 					pofilename = resource['pofile'].rpartition('/')[2]
 					vcspathtemp = resource['vcspath'].replace('/viewvc/', '/svn/')
 					vcspath = vcspathtemp.replace('http://', 'svn+ssh://' + self.username + '@')
@@ -356,12 +356,12 @@ class GNOMEI18nManage:
 							self.dir_links + pofilename
 
 					if action == 'print' and self.opt_verbose:
-						print "\t\t\t\t\tCMD:", CMD1
-						print "\t\t\t\t\tCMD:", CMD2
-						print "\t\t\t\t\tCMD:", CMD3
+						print "            CMD:", CMD1
+						print "            CMD:", CMD2
+						print "            CMD:", CMD3
 					elif action == 'execute':
 						if self.opt_verbose:
-							print "\t\t\t\t\tTouching current time at", self.dir_po + self.file_START
+							print "\t\t\t\tTouching current time at", self.dir_po + self.file_START
 						os.system("touch " + self.dir_po + self.file_START)
 						#print "\t\t\t\t\tCMD:", CMD1
 						os.system(CMD1)
