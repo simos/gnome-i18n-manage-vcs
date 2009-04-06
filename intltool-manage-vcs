@@ -262,7 +262,7 @@ class GNOMEI18nManage:
 		dircontents.remove(self.file_README)	
 		for vcsdir in dircontents:
 			if not self.opt_quiet:
-				print "Committing in", self.dir_vcs + vcsdir
+				print "Committing in", self.dir_vcs + vcsdir, "language:", self.language
 			cmd_commit = 'svn commit -m ' + '"Updated ' + self.language + ' translation"'
 			cmd_changedir = 'chdir ' + self.dir_vcs + vcsdir
 			if self.opt_dryrun:
@@ -426,7 +426,7 @@ class GNOMEI18nManage:
                		else:
                         	if not self.opt_quiet:
                                 	print "Downloading: ",
-		if not opt_quiet:
+		if not self.opt_quiet:
         		sys.stdout.write('#')
         		sys.stdout.flush()
 
@@ -437,18 +437,20 @@ class GNOMEI18nManage:
 	        localfilename = 'managevcs-' + self.language + '-' + self.release + '.' + url.split('/')[-1]
 	        if not os.path.isfile(localfilename) or os.path.getsize(localfilename) <= 0:
 	                if not self.opt_quiet:
+				print "Will save as", localfilename
 	                        print "Downloading ", url, "..."
 	                try:
-				if os.path.getsize(localfilename) <= 0:
-					os.remove(localfilename)
+				if os.path.exists(localfilename):
+					if os.path.getsize(localfilename) <= 0:
+						os.remove(localfilename)
 	                        urllib.urlretrieve(url, localfilename, self.download_hook)
 	                except IOError, (errno, strerror):
 	                        print "I/O error(%s): %s" % (errno, strerror)
 	                        sys.exit(-1)
-	                except:
-	                        print "Unexpected error: ", sys.exc_info()[0]
+	                except OSError, err:
+	                        print "Unexpected error: ", err
 	                        sys.exit(-1)
-			if not opt_quiet:
+			if not self.opt_quiet:
 	                	print " done."
 	        else:
 	                if not self.opt_quiet:
