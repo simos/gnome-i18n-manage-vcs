@@ -158,7 +158,7 @@ class GNOMEI18nManage:
 	opt_init = False
 	opt_blank = False
 	opt_status = False
-	opt_svnquiet = False
+	opt_svnverbose = False
 	opt_verbose = False
 
 	def __init__(self, argv):
@@ -170,7 +170,7 @@ class GNOMEI18nManage:
 		        opts, args = getopt.getopt(argv[1:], "abc:dhil:qr:st:u:", ["apply", "blank", 
 							"category=", "commit", "dryrun", "dry-run", "help", 
 							"init", "module=", "language=",
-							"release=", "status", "svnquiet", "transtype=", 
+							"release=", "status", "svnverbose", "transtype=", 
 							"verbose", "username=" ])
 		except getopt.GetoptError, err:
 			print "Error", err
@@ -201,8 +201,8 @@ class GNOMEI18nManage:
 			 	self.release = a
      			if o in ("-s", "--status"):
 				self.opt_status = True
-     			if o in ("--svnquiet"):
-				self.opt_svnquiet = True
+     			if o in ("--svnverbose"):
+				self.opt_svnverbose = True
      			if o in ("--transtype"):
 				if a in ['ui', 'domain']:
 					self.transtype = 'domain'
@@ -352,18 +352,21 @@ class GNOMEI18nManage:
 						#print "\t\t\t\tSetting alignment to ", alignment
 					localsvnname = mod + '@' + resource['type'] + '@' + branch
 
-					if self.opt_svnquiet:
-						CMD1 = 'svn co --quiet ' + vcspath + ' ' + self.dir_vcs + localsvnname
-						CMD2 = 'wget --quiet http://l10n.gnome.org' + resource['pofile'] + \
-							' -O ' + self.dir_po + pofilename
-						CMD3 = 'ln -s ../' + self.dir_vcs + localsvnname + \
-							'/' + alignment + language + '.po ' + \
-							self.dir_links + pofilename
-					else:
+					if self.opt_svnverbose:
 						CMD1 = 'svn co ' + vcspath + ' ' + self.dir_vcs + localsvnname
+					else:
+						CMD1 = 'svn co --quiet ' + vcspath + ' ' + self.dir_vcs + localsvnname
+
+					if self.opt_verbose:
 						CMD2 = 'wget http://l10n.gnome.org' + resource['pofile'] + \
 							' -O ' + self.dir_po + pofilename
 						CMD3 = 'ln --verbose -s ../' + self.dir_vcs + localsvnname + \
+							'/' + alignment + language + '.po ' + \
+							self.dir_links + pofilename
+					else:
+						CMD2 = 'wget --quiet http://l10n.gnome.org' + resource['pofile'] + \
+							' -O ' + self.dir_po + pofilename
+						CMD3 = 'ln -s ../' + self.dir_vcs + localsvnname + \
 							'/' + alignment + language + '.po ' + \
 							self.dir_links + pofilename
 
@@ -422,7 +425,7 @@ class GNOMEI18nManage:
 		 -q     --quiet		    Be quiet
 		 -r REL --release REL       release REL (such as 'gnome-2-26')
        		 -s     --status            show status
-		        --svnquiet	    Add --quiet to the SVN checkouts
+		        --svnverbose	    Add --quiet to the SVN checkouts
 		 -t	--transtype=TYPE    optionally specify translation type, either ui or doc
 		 -u USR --username USR      username USR (corresponds to SVN/GIT GNOME account)
        		 -v     --verbose           show verbose output
