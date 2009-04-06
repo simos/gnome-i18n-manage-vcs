@@ -253,8 +253,9 @@ class GNOMEI18nManage:
 					os.stat(self.dir_links + pofile)
 				except OSError, err:
 					print "You do not have an initial translation for", pofile
-					print " Please perform the commit manually. We welcome patches\n"
+					print " Please perform the commit manually. We welcome patches"
 					print " to implement automatic addition of new translations."
+					continue
 				if self.opt_verbose:
 					print "Copying", self.dir_po + pofile, "to", self.dir_links + pofile
 				if not self.opt_dryrun:
@@ -265,6 +266,8 @@ class GNOMEI18nManage:
 		dircontents = dircontents[:]
 		dircontents.remove(self.file_README)	
 		for vcsdir in dircontents:
+			# We commit irrespective of any changed files; if files are not changed, 
+			# no harm is done.
 			if self.opt_verbose:
 				print "Committing in", self.dir_vcs + vcsdir, "language:", self.language
 			cmd_commit = 'svn commit -m ' + '"Updated ' + self.language + ' translation"'
