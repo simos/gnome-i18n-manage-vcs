@@ -151,9 +151,9 @@ class GNOMEI18nManage:
 	opt_dryrun = False
 	opt_init = False
 	opt_blank = False
-	opt_quiet = False
 	opt_status = False
 	opt_svnquiet = False
+	opt_verbose = False
 
 	def __init__(self, argv):
 		if not argv[1:]:
@@ -163,8 +163,9 @@ class GNOMEI18nManage:
 		try:
 		        opts, args = getopt.getopt(argv[1:], "abc:dhil:qr:st:u:", ["apply", "blank", 
 							"category=", "commit", "dryrun", "dry-run", "help", 
-							"init", "module=", "language=", "quiet", 
-							"release=", "status", "svnquiet", "transtype=", "username=" ])
+							"init", "module=", "language=",
+							"release=", "status", "svnquiet", "transtype=", 
+							"verbose", "username=" ])
 		except getopt.GetoptError, err:
 			print "Error", err
         		self.usage()
@@ -190,8 +191,6 @@ class GNOMEI18nManage:
                 		self.module = a
         		if o in ("-l", "--language"):
                 		self.language = a
-        		if o in ("-q", "--quiet"):
-                		self.opt_quiet = True
 			if o in ("-r", "--release"):
 			 	self.release = a
      			if o in ("-s", "--status"):
@@ -206,6 +205,8 @@ class GNOMEI18nManage:
 				else:
 					print "ERROR: Invalid transtype, expected on of ui, doc, domain, document"
 					sys.exit(-4)
+        		if o in ("-v", "--verbose"):
+                		self.opt_verbose = True
         		if o in ("-u", "--username"):
                 		self.username = a
 
@@ -251,7 +252,7 @@ class GNOMEI18nManage:
 		start_time = os.stat(self.dir_po + self.file_START).st_mtime
 		for pofile in dircontents:
 			if start_time < os.stat(self.dir_po + pofile).st_mtime:
-				if not self.opt_quiet:
+				if self.opt_verbose:
 					print "Copying", self.dir_po + pofile, "to", self.dir_links + pofile
 				if not self.opt_dryrun:
 					shutil.copyfile(self.dir_po + pofile, self.dir_links + pofile)
@@ -261,7 +262,7 @@ class GNOMEI18nManage:
 		dircontents = dircontents[:]
 		dircontents.remove(self.file_README)	
 		for vcsdir in dircontents:
-			if not self.opt_quiet:
+			if self.opt_verbose:
 				print "Committing in", self.dir_vcs + vcsdir, "language:", self.language
 			cmd_commit = 'svn commit -m ' + '"Updated ' + self.language + ' translation"'
 			cmd_changedir = 'chdir ' + self.dir_vcs + vcsdir
@@ -287,12 +288,12 @@ class GNOMEI18nManage:
 			if dircontents:
 				for item in dircontents:
 					if os.path.isdir(dir + item):
-						if not self.opt_quiet:
+						if self.opt_verbose:
 							print "Removing directory tree", dir + item
 						if not self.opt_dryrun:
 							shutil.rmtree(dir + item)
 					else:
-						if not self.opt_quiet:
+						if self.opt_verbose:
 							print "Removing file", dir + item
 						if not self.opt_dryrun:
 							os.remove(dir + item)
@@ -316,17 +317,16 @@ class GNOMEI18nManage:
 		for cat in stats['categories'].keys():
 			if self.category != '' and cat != self.category:
 				continue
-			print "\tCategory:", cat
+			print "    Category: %(cat)s" % { "cat": cat }
 			for mod in stats['categories'][cat]:
 				if self.module != '' and mod != self.module:
 					continue
-				print "\t\tModule:", mod
-				print "\t\t\tBranch:", stats['categories'][cat][mod]['branch']
+				print "        Module: %(br)22s, Branch: %(mod)s" % { "br": mod, "mod": stats['categories'][cat][mod]['branch'] }
 				for resource in stats['categories'][cat][mod]['resource']:
 					if self.transtype: 
 						if resource['id'] not in self.transtype:
 							continue
-					if not self.opt_quiet:
+					if self.opt_verbose:
 						print "\t\t\t\tID:", resource['id'], "Type:", resource['type']
 						print "\t\t\t\t\tPOFile:", resource['pofile']
 						print "\t\t\t\t\tVCSPath:", resource['vcspath']
@@ -355,12 +355,12 @@ class GNOMEI18nManage:
 							'/' + alignment + language + '.po ' + \
 							self.dir_links + pofilename
 
-					if action == 'print' and not self.opt_quiet:
+					if action == 'print' and self.opt_verbose:
 						print "\t\t\t\t\tCMD:", CMD1
 						print "\t\t\t\t\tCMD:", CMD2
 						print "\t\t\t\t\tCMD:", CMD3
 					elif action == 'execute':
-						if not self.opt_quiet:
+						if self.opt_verbose:
 							print "\t\t\t\t\tTouching current time at", self.dir_po + self.file_START
 						os.system("touch " + self.dir_po + self.file_START)
 						#print "\t\t\t\t\tCMD:", CMD1
@@ -421,12 +421,12 @@ class GNOMEI18nManage:
 	        """ A download hook to provide some feedback when downloading """
 	        if blocks_transferred == 0:
 	                if file_size > 0:
-       		                 if not self.opt_quiet:
+       		                 if self.opt_verbose:
                 	                print "Downloading", file_size, "bytes: ",
                		else:
-                        	if not self.opt_quiet:
+                        	if self.opt_verbose:
                                 	print "Downloading: ",
-		if not self.opt_quiet:
+		if self.opt_verbose:
         		sys.stdout.write('#')
         		sys.stdout.flush()
 
@@ -436,7 +436,7 @@ class GNOMEI18nManage:
 	        """ Borks on failure """
 	        localfilename = 'managevcs-' + self.language + '-' + self.release + '.' + url.split('/')[-1]
 	        if not os.path.isfile(localfilename) or os.path.getsize(localfilename) <= 0:
-	                if not self.opt_quiet:
+	                if self.opt_verbose:
 				print "Will save as", localfilename
 	                        print "Downloading ", url, "..."
 	                try:
@@ -450,10 +450,10 @@ class GNOMEI18nManage:
 	                except OSError, err:
 	                        print "Unexpected error: ", err
 	                        sys.exit(-1)
-			if not self.opt_quiet:
+			if self.opt_verbose:
 	                	print " done."
 	        else:
-	                if not self.opt_quiet:
+	                if self.opt_verbose:
         	                print "Using cached file for ", url
 	        return localfilename
 
