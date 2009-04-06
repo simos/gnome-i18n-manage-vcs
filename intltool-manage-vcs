@@ -221,6 +221,11 @@ class GNOMEI18nManage:
 			sys.exit(0)
 
 		if self.opt_commit:
+			if not self.language:
+				print "Committing requires to set the language."
+				print "You can put here the full name, as in Greek"
+				print "instead of the ISO 639 code, \"el\".\nExiting..."
+				sys.exit(-11)
 			if self.is_empty():
 				print "Directories are empty, cannot commit translation changes; exiting"
 				sys.exit(-3)
