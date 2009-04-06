@@ -337,7 +337,7 @@ class GNOMEI18nManage:
 					alignment = ''
 					if resource['type'] == 'help' or resource['id'] == 'document':
 						alignment = 'el/'
-						print "Setting alignment to ", alignment
+						#print "\t\t\t\tSetting alignment to ", alignment
 					localsvnname = mod + '@' + resource['type'] + '@' + branch
 
 					if self.opt_svnquiet:
