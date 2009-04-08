@@ -429,18 +429,18 @@ class GNOMEI18nManage:
 	        print """Available parameters:
  -b     --blank             blanks and clears the downloaded files
  -c CAT --category CAT      i18n category name CAT (such as 'desktop')
-        --commit	    commit changes in repositories
- -d	--dry-run	    do not really checkout/commit
+        --commit            commit changes in repositories
+ -d     --dry-run           do not really checkout/commit
  -h     --help              this craft
  -i     --init              when initialising, --language, --release, 
-         		     and --username are REQUIRED.
+                             and --username are REQUIRED.
  -m MOD --module MOD        i18n module name MOD (such as 'gnome-games')
  -l LL  --language LL       language code per ISO 639
- -q     --quiet		    Be quiet
+ -q     --quiet             Be quiet (less output)
  -r REL --release REL       release REL (such as 'gnome-2-26')
  -s     --status            show status
-        --svnverbose	    Add --quiet to the SVN checkouts
- -t	--transtype=TYPE    optionally specify translation type, either ui or doc
+        --svnverbose        Add --quiet to the SVN checkouts
+ -t     --transtype TYPE    optionally specify translation type, either ui or doc
  -u USR --username USR      username USR (corresponds to SVN/GIT GNOME account)
  -v     --verbose           show verbose output
 
