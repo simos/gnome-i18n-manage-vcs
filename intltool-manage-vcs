@@ -402,7 +402,7 @@ class GNOMEI18nManage:
 						#	print "Now exiting..."
 						#	sys.exit(-5)
 		print "                                                     "
-		print "Download completed succesfully."
+		print "Download completed successfully."
 	
 	def parse_gnome_xml_file(self, filename):
 		try:
