@@ -239,7 +239,11 @@ class GNOMEI18nManage:
 
 		if self.opt_init:
 			if not self.is_empty():
-				print "ERROR: Cannot init when directories are not empty"
+				print "ERROR: Cannot init when directories are not empty."
+				print "Once you commit your work, please run with --blank"
+				print "parameter in order to clear the working space."
+				print "Then, try to --init again."
+				print "Exiting..."
 				sys.exit(-2)
 			else:
 				self.init()
