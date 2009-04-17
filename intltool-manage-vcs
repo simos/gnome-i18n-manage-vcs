@@ -426,6 +426,7 @@ class GNOMEI18nManage:
 
 	def usage(self):
 		print PROGNAME, 'a tool that helps manage translation files from a VCS'
+		print "GNOME SWITCHED TO GIT. THIS SCRIPT IS BEING UPDATED. MAY TAKE A BIT."
 	        print """Available parameters:
  -b     --blank             blanks and clears the downloaded files
  -c CAT --category CAT      i18n category name CAT (such as 'desktop')
