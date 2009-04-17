@@ -167,7 +167,7 @@ class GNOMEI18nManage:
 
 		try:
 		        opts, args = getopt.getopt(argv[1:], "abc:dhil:qr:st:u:", ["blank", 
-							"category=", "commit", "dryrun", "dry-run", "help", 
+							"category=", "clean", "commit", "dryrun", "dry-run", "help", 
 							"init", "module=", "language=",
 							"release=", "status", "gitverbose", "transtype=", 
 							"verbose", "username=" ])
@@ -177,7 +177,7 @@ class GNOMEI18nManage:
         		sys.exit(0)
 
 		for o, a in opts:
-        		if o in ("-b", "--blank"):
+        		if o in ("-b", "--blank", "--clean"):
                 		self.opt_blank = True
         		if o in ("-c", "--category"):
                 		self.category = a
@@ -287,7 +287,7 @@ class GNOMEI18nManage:
 				os.system(cmd_changedir + ';' + cmd_commit)
 
 	def is_empty(self):
-		for dir in [self.dir_po, self.dir_vcs, self.dir_links]:
+		for dir in [self.dir_po, self.dir_links]:
 			dircontents = dircache.listdir(dir)
 			dircontents = dircontents[:]
 			dircontents.remove(self.file_README)	
@@ -296,7 +296,7 @@ class GNOMEI18nManage:
 		return True
 
 	def do_blank(self):
-		for dir in [self.dir_po, self.dir_vcs, self.dir_links]:
+		for dir in [self.dir_po, self.dir_links]:
 			dircontents = dircache.listdir(dir)
 			dircontents = dircontents[:]
 			dircontents.remove(self.file_README)	
@@ -431,6 +431,7 @@ class GNOMEI18nManage:
 	        print """Available parameters:
  -b     --blank             blanks and clears the downloaded files
  -c CAT --category CAT      i18n category name CAT (such as 'desktop')
+	--clean             same as --blank
         --commit            commit changes in repositories
  -d     --dry-run           do not really checkout/commit
  -h     --help              this craft
