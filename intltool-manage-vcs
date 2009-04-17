@@ -351,7 +351,7 @@ class GNOMEI18nManage:
 						print "        ID:", resource['id'], "Type:", resource['type']
 						print "          POFile:", resource['pofile']
 						print "          VCSPath:", resource['vcspath']
-					pofilename = resource['pofile'].rpartition('/')[2]
+					pofilename = resource['pofile'].rsplit('/')[2]
 					#vcspathtemp = resource['vcspath'].replace('/cgit/', '/git/')
 					#vcspath = vcspathtemp.replace('http://', 'ssh://' + self.username + '@')
 					vcspath = 'ssh://' + self.username + '@' + 'git.gnome.org/git/' + mod
