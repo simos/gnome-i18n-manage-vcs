@@ -157,7 +157,7 @@ class GNOMEI18nManage:
 	opt_init = False
 	opt_blank = False
 	opt_status = False
-	opt_svnverbose = False
+	opt_gitverbose = False
 	opt_verbose = False
 
 	def __init__(self, argv):
@@ -169,7 +169,7 @@ class GNOMEI18nManage:
 		        opts, args = getopt.getopt(argv[1:], "abc:dhil:qr:st:u:", ["blank", 
 							"category=", "commit", "dryrun", "dry-run", "help", 
 							"init", "module=", "language=",
-							"release=", "status", "svnverbose", "transtype=", 
+							"release=", "status", "gitverbose", "transtype=", 
 							"verbose", "username=" ])
 		except getopt.GetoptError, err:
 			print "Error", err
@@ -198,8 +198,8 @@ class GNOMEI18nManage:
 			 	self.release = a
      			if o in ("-s", "--status"):
 				self.opt_status = True
-     			if o in ("--svnverbose"):
-				self.opt_svnverbose = True
+     			if o in ("--gitverbose"):
+				self.opt_gitverbose = True
      			if o in ("--transtype"):
 				if a in ['ui', 'domain']:
 					self.transtype = 'domain'
@@ -352,19 +352,21 @@ class GNOMEI18nManage:
 						print "          POFile:", resource['pofile']
 						print "          VCSPath:", resource['vcspath']
 					pofilename = resource['pofile'].rpartition('/')[2]
-					vcspathtemp = resource['vcspath'].replace('/viewvc/', '/svn/')
-					vcspath = vcspathtemp.replace('http://', 'svn+ssh://' + self.username + '@')
+					#vcspathtemp = resource['vcspath'].replace('/cgit/', '/git/')
+					#vcspath = vcspathtemp.replace('http://', 'ssh://' + self.username + '@')
+					vcspath = 'ssh://' + self.username + '@' + 'git.gnome.org/git/' + mod
 					branch = stats['categories'][cat][mod]['branch']
 					alignment = ''
 					if resource['type'] == 'help' or resource['id'] == 'document':
-						alignment = 'el/'
-						#print "\t\t\t\tSetting alignment to ", alignment
-					localsvnname = mod + '@' + resource['type'] + '@' + branch
-
-					if self.opt_svnverbose:
-						CMD1 = 'svn co ' + vcspath + ' ' + self.dir_vcs + localsvnname
+						alignment = 'help/el/'
 					else:
-						CMD1 = 'svn co --quiet ' + vcspath + ' ' + self.dir_vcs + localsvnname
+						alignment = 'po/'
+					#print "\t\t\t\tSetting alignment to ", alignment
+
+					if self.opt_gitverbose:
+						CMD1 = 'cd ' + self.dir_vcs + ';' + 'git clone ' + vcspath
+					else:
+						CMD1 = 'cd ' + self.dir_vcs + ';' + 'git clone --quiet ' + vcspath
 
 					if pofilename[-4:] == '.pot':
 						pofilename = pofilename[:-1]
@@ -372,13 +374,13 @@ class GNOMEI18nManage:
 					if self.opt_verbose:
 						CMD2 = 'wget http://l10n.gnome.org' + resource['pofile'] + \
 							' -O ' + self.dir_po + pofilename
-						CMD3 = 'ln --verbose -s ../' + self.dir_vcs + localsvnname + \
+						CMD3 = 'ln --verbose -s ../' + self.dir_vcs + mod + \
 							'/' + alignment + language + '.po ' + \
 							self.dir_links + pofilename
 					else:
 						CMD2 = 'wget --quiet http://l10n.gnome.org' + resource['pofile'] + \
 							' -O ' + self.dir_po + pofilename
-						CMD3 = 'ln -s ../' + self.dir_vcs + localsvnname + \
+						CMD3 = 'ln -s ../' + self.dir_vcs + mod + \
 							'/' + alignment + language + '.po ' + \
 							self.dir_links + pofilename
 
@@ -391,22 +393,18 @@ class GNOMEI18nManage:
 							print "\t\t\t\tTouching current time at", self.dir_po + self.file_START
 						os.system("touch " + self.dir_po + self.file_START)
 						print "Retrieving module", mod, "of type", resource['id'] + "...",
+						if self.opt_verbose: 
+							print 
         					sys.stdout.flush()
 						os.system(CMD1)
-						print "                                                                  \r",
+						if not self.opt_verbose:
+							print "                                                                  \r",
         					sys.stdout.flush()
 						os.system(CMD2)
 						os.system(CMD3)
-						#try:
-						#	os.stat(self.dir_links + pofilename)
-						#except OSError, err:
-						#	print "ERROR: We did not create the link properly"
-						#	print "This is an internal error in the script"
-						#	print "Please clear the mess with --blank and check the source"
-						#	print "Now exiting..."
-						#	sys.exit(-5)
-		print "                                                     "
-		print "Download completed successfully."
+		if not self.opt_verbose:
+			print "                                                     "
+		print 'Cloning for module', mod, 'completed successfully.'
 	
 	def parse_gnome_xml_file(self, filename):
 		try:
@@ -440,7 +438,7 @@ class GNOMEI18nManage:
  -q     --quiet             Be quiet (less output)
  -r REL --release REL       release REL (such as 'gnome-2-26')
  -s     --status            show status
-        --svnverbose        Add --quiet to the SVN checkouts
+        --gitverbose        Add --quiet to GIT cloning
  -t     --transtype TYPE    optionally specify translation type, either ui or doc
  -u USR --username USR      username USR (corresponds to SVN/GIT GNOME account)
  -v     --verbose           show verbose output
