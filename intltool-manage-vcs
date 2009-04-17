@@ -392,14 +392,17 @@ class GNOMEI18nManage:
 						if self.opt_verbose:
 							print "\t\t\t\tTouching current time at", self.dir_po + self.file_START
 						os.system("touch " + self.dir_po + self.file_START)
-						print "Retrieving module", mod, "of type", resource['id'] + "...",
-						if self.opt_verbose: 
-							print 
-        					sys.stdout.flush()
-						os.system(CMD1)
-						if not self.opt_verbose:
-							print "                                                                  \r",
-        					sys.stdout.flush()
+						if os.path.exists(self.dir_vcs + mod):
+							print "Cached repository for", mod, "exists. Skipping cloning..."
+						else:
+							print "Retrieving module", mod, "of type", resource['id'] + "...",
+							if self.opt_verbose: 
+								print 
+        						sys.stdout.flush()
+							os.system(CMD1)
+							if not self.opt_verbose:
+								print "                                                                  \r",
+        						sys.stdout.flush()
 						os.system(CMD2)
 						os.system(CMD3)
 		if not self.opt_verbose:
