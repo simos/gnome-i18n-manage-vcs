@@ -1,4 +1,0 @@
-This directory contains symbolic links to the language PO files
-in the repositories in ../VCS/
-The symbolic links link the PO files in ../PO/ with their counterpart
-in ../VCS/
