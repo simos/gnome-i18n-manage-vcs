@@ -159,6 +159,7 @@ class GNOMEI18nManage:
 	opt_status = False
 	opt_gitverbose = False
 	opt_verbose = False
+	opt_updatevcs = False
 
 	def __init__(self, argv):
 		if not argv[1:]:
@@ -170,7 +171,7 @@ class GNOMEI18nManage:
 							"category=", "clean", "commit", "dryrun", "dry-run", "help", 
 							"init", "module=", "language=",
 							"release=", "status", "gitverbose", "transtype=", 
-							"verbose", "username=" ])
+							"verbose", "username=", 'update-vcs' ])
 		except getopt.GetoptError, err:
 			print "Error", err
         		self.usage()
@@ -212,6 +213,8 @@ class GNOMEI18nManage:
                 		self.opt_verbose = True
         		if o in ("-u", "--username"):
                 		self.username = a
+			if o in ('--update-vcs'):
+				self.opt_updatevcs = True
 
 		if self.opt_status:
 			if self.is_empty():
@@ -250,6 +253,22 @@ class GNOMEI18nManage:
 
 		if self.opt_blank:
 			self.do_blank()
+
+		if self.opt_updatevcs:
+			dircontents = dircache.listdir(self.dir_vcs)
+			dircontents = dircontents[:]
+			dircontents.remove(self.file_README)	
+			cmd_pull = 'git pull --rebase'
+			for vcsdir in dircontents:
+				# We commit irrespective of any changed files; if files are not changed, 
+				# no harm is done.
+				if self.opt_verbose:
+					print "Pulling for", self.dir_vcs + vcsdir
+				cmd_changedir = 'chdir ' + self.dir_vcs + vcsdir
+				if self.opt_dryrun:
+					print cmd_changedir + ';' + cmd_pull
+				else:
+					os.system(cmd_changedir + ';' + cmd_pull)
 
 	def apply_translation_changes(self):
 		dircontents = dircache.listdir(self.dir_po)
@@ -390,12 +409,12 @@ class GNOMEI18nManage:
 						print "            CMD:", CMD3
 					elif action == 'execute':
 						if self.opt_verbose:
-							print "\t\t\t\tTouching current time at", self.dir_po + self.file_START
+							print "\t\tTouching current time at", self.dir_po + self.file_START
 						os.system("touch " + self.dir_po + self.file_START)
 						if os.path.exists(self.dir_vcs + mod):
 							print "Cached repository for", mod, "exists. Skipping cloning..."
 						else:
-							print "Retrieving module", mod, "of type", resource['id'] + "...",
+							print "Retrieving module", mod, "...",
 							if self.opt_verbose: 
 								print 
         						sys.stdout.flush()
@@ -407,7 +426,6 @@ class GNOMEI18nManage:
 						os.system(CMD3)
 		if not self.opt_verbose:
 			print "                                                     "
-		print 'Cloning for module', mod, 'completed successfully.'
 	
 	def parse_gnome_xml_file(self, filename):
 		try:
@@ -445,6 +463,7 @@ class GNOMEI18nManage:
         --gitverbose        Add --quiet to GIT cloning
  -t     --transtype TYPE    optionally specify translation type, either ui or doc
  -u USR --username USR      username USR (corresponds to SVN/GIT GNOME account)
+        --update-vcs        update local repositories (runs git pull --rebase on each)
  -v     --verbose           show verbose output
 
  Default is to show this help text."""
