@@ -148,7 +148,6 @@ class GNOMEI18nManage:
 
 	dir_po = 'PO/'
 	dir_vcs = 'VCS/'
-	dir_links = 'LINKS/'
 	file_START = 'START'
 	file_README = 'README'
 
@@ -271,6 +270,8 @@ class GNOMEI18nManage:
 					os.system(cmd_changedir + ';' + cmd_pull)
 
 	def apply_translation_changes(self):
+		print "Applying translations is not working yet; still fixing for git"
+		sys.exit(14)
 		dircontents = dircache.listdir(self.dir_po)
 		dircontents = dircontents[:]
 		dircontents.remove(self.file_README)	
@@ -278,16 +279,16 @@ class GNOMEI18nManage:
 		for pofile in dircontents:
 			if start_time < os.stat(self.dir_po + pofile).st_mtime:
 				try:
-					os.stat(self.dir_links + pofile)
+					os.stat( pofile)
 				except OSError, err:
 					print "You do not have an initial translation for", pofile
 					print " Please perform the commit manually. We welcome patches"
 					print " to implement automatic addition of new translations."
 					continue
 				if self.opt_verbose:
-					print "Copying", self.dir_po + pofile, "to", self.dir_links + pofile
+					print "Copying", self.dir_po + pofile, "to",  pofile
 				if not self.opt_dryrun:
-					shutil.copyfile(self.dir_po + pofile, self.dir_links + pofile)
+					shutil.copyfile(self.dir_po + pofile,  pofile)
 
 	def do_commit(self):
 		dircontents = dircache.listdir(self.dir_vcs)
@@ -306,7 +307,7 @@ class GNOMEI18nManage:
 				os.system(cmd_changedir + ';' + cmd_commit)
 
 	def is_empty(self):
-		for dir in [self.dir_po, self.dir_links]:
+		for dir in [self.dir_po]:
 			dircontents = dircache.listdir(dir)
 			dircontents = dircontents[:]
 			dircontents.remove(self.file_README)	
@@ -315,7 +316,7 @@ class GNOMEI18nManage:
 		return True
 
 	def do_blank(self):
-		for dir in [self.dir_po, self.dir_links]:
+		for dir in [self.dir_po]:
 			dircontents = dircache.listdir(dir)
 			dircontents = dircontents[:]
 			dircontents.remove(self.file_README)	
@@ -393,15 +394,9 @@ class GNOMEI18nManage:
 					if self.opt_verbose:
 						CMD2 = 'wget http://l10n.gnome.org' + resource['pofile'] + \
 							' -O ' + self.dir_po + pofilename
-						CMD3 = 'ln --verbose -s ../' + self.dir_vcs + mod + \
-							'/' + alignment + language + '.po ' + \
-							self.dir_links + pofilename
 					else:
 						CMD2 = 'wget --quiet http://l10n.gnome.org' + resource['pofile'] + \
 							' -O ' + self.dir_po + pofilename
-						CMD3 = 'ln -s ../' + self.dir_vcs + mod + \
-							'/' + alignment + language + '.po ' + \
-							self.dir_links + pofilename
 
 					if action == 'print' and self.opt_verbose:
 						print "            CMD:", CMD1
