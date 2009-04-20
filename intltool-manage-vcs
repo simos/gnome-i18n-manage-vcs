@@ -269,6 +269,7 @@ class GNOMEI18nManage:
 					print cmd_changedir + ';' + cmd_pull
 				else:
 					os.system(cmd_changedir + ';' + cmd_pull)
+				counter = counter + 1
 
 	def apply_translation_changes(self):
 		print "Applying translations is not working yet; still fixing for git"
