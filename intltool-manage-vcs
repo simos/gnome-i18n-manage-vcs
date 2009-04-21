@@ -263,7 +263,7 @@ class GNOMEI18nManage:
 				# We commit irrespective of any changed files; if files are not changed, 
 				# no harm is done.
 				###if self.opt_verbose:
-				print "Pulling for", self.dir_vcs + vcsdir, ' -- ' counter, 'of', len(dircontents)
+				print "Pulling for", self.dir_vcs + vcsdir, ' -- ', counter, 'of', len(dircontents)
 				cmd_changedir = 'chdir ' + self.dir_vcs + vcsdir
 				if self.opt_dryrun:
 					print cmd_changedir + ';' + cmd_pull
