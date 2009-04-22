@@ -216,11 +216,14 @@ class GNOMEI18nManage:
 				self.opt_updatevcs = True
 
 		if self.opt_status:
-			if self.is_empty():
-				print "Directories are empty"
-			else:
-				print "Directories are not empty"
-			sys.exit(0)
+			dircontents = dircache.listdir(self.dir_vcs)
+			dircontents = dircontents[:]
+			dircontents.remove(self.file_README)
+			print len(dircontents), "repositories found:", ", ".join(map(str, dircontents))
+			dircontents = dircache.listdir(self.dir_po)
+			dircontents = dircontents[:]
+			dircontents.remove(self.file_README)
+			print len(dircontents), "PO files found:", dircontents
 
 		if self.opt_commit:
 			if not self.language:
