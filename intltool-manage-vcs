@@ -220,10 +220,10 @@ class GNOMEI18nManage:
 			dircontents = dircontents[:]
 			dircontents.remove(self.file_README)
 			print len(dircontents), "repositories found:", ", ".join(map(str, dircontents))
-			dircontents = dircache.listdir(self.dir_po)
-			dircontents = dircontents[:]
-			dircontents.remove(self.file_README)
-			print len(dircontents), "PO files found:", dircontents
+			pocontents = pocache.listdir(self.dir_po)
+			pocontents = pocontents[:]
+			pocontents.remove(self.file_README)
+			print len(pocontents), "PO files found:", pocontents
 
 		if self.opt_commit:
 			if not self.language:
