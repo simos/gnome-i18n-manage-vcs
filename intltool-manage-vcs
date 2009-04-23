@@ -18,11 +18,12 @@
 # Version : 0.9
 
 import dircache		# dircache.listdir()
-import os		# os.system(), os.remove(), os.path.gmtime()
+import os		# os.system(), os.remove(), os.path.gmtime(), os.getenv()
 import getopt		# getopt.getopt()
 import shutil		# shutil.rmtree()
 import sys		# sys.argv, sys.exit()
 import urllib		# urllib.urlretrieve()
+import ConfigParser	# ConfigParser()
 
 try:
 	from lxml import etree  # etree.XMLParser(), etree.XML()
@@ -151,7 +152,10 @@ class GNOMEI18nManage:
 	file_START = 'START'
 	file_README = 'README'
 
+	file_CONFIG = ''
+
 	opt_commit = False
+	opt_config = False
 	opt_dryrun = False
 	opt_init = False
 	opt_blank = False
@@ -167,10 +171,10 @@ class GNOMEI18nManage:
 
 		try:
 		        opts, args = getopt.getopt(argv[1:], "abc:dhil:qr:st:u:", ["blank", 
-							"category=", "clean", "commit", "dryrun", "dry-run", "help", 
-							"init", "module=", "language=",
+							"category=", "clean", "commit", "config", "dryrun", "dry-run", 
+							"help", "init", "module=", "language=", "podir=",
 							"release=", "status", "gitverbose", "transtype=", 
-							"verbose", "username=", 'update-vcs' ])
+							"vcsdir=", "verbose", "username=", 'update-vcs' ])
 		except getopt.GetoptError, err:
 			print "Error", err
         		self.usage()
@@ -183,6 +187,8 @@ class GNOMEI18nManage:
                 		self.category = a
         		if o in ("--commit"):
                 		self.opt_commit = True
+        		if o in ("--config"):
+                		self.opt_config = True
         		if o in ("--dryrun", "--dry-run"):
                 		self.opt_dryrun = True
 		        if o in ("-h", "--help"):
@@ -194,6 +200,8 @@ class GNOMEI18nManage:
                 		self.module = a
         		if o in ("-l", "--language"):
                 		self.language = a
+			if o in ("--podir"):
+			 	self.podir = a
 			if o in ("-r", "--release"):
 			 	self.release = a
      			if o in ("-s", "--status"):
@@ -208,6 +216,8 @@ class GNOMEI18nManage:
 				else:
 					print "ERROR: Invalid transtype, expected on of ui, doc, domain, document"
 					sys.exit(-4)
+        		if o in ("--vcsdir"):
+                		self.vcsdir = a
         		if o in ("-v", "--verbose"):
                 		self.opt_verbose = True
         		if o in ("-u", "--username"):
@@ -215,15 +225,53 @@ class GNOMEI18nManage:
 			if o in ('--update-vcs'):
 				self.opt_updatevcs = True
 
+		self.file_CONFIG = os.getenv('HOME') + '/' + '.gnomemanagevcsrc'
+
+		if not self.opt_config and not os.path.exists(self.file_CONFIG):
+			print "Please specify the baseline configuration options"
+			print "with the --config parameter."
+			print "Could not find file", self.file_CONFIG
+			print "Run this script without parameters for more help."
+			print "Exiting..."
+			sys.exit(-1)
+
+		if self.opt_config and (self.language == '' or self.release == '' or self.username == ''):
+			print "Error: Required parameter(s) missing for configuration"
+			print "When using the --config option, please specify at least"
+			print "the location of the VCS repositories. Use "
+			print "   --config --vcsdir /home/user/GNOME    Other options are"
+			print " 1. language (ISO 639), i.e. en, en_GB, el, fr, es"
+			print " 2. GNOME release, i.e. gnome-2-26, gnome-2-28"
+			print " 3. username (your git username, or 'anonymous' for anonymous clones"
+			print
+			print "Run this script without parameters for more help."
+			print "Exiting..."
+			sys.exit(-1)
+
+		if self.opt_config:
+			print self.release
+			self.writeconfig()
+			print "Use --status to view the current configuration settings."
+			sys.exit(0)
+
+		self.readconfig()
+
 		if self.opt_status:
+			print 'Language: %(lang)s\tRelease: %(rel)s\tUsername: %(u)s' % \
+					{ 'lang': self.language, 'rel': self.release, 'u': self.username }
+			print
+			print 'VCS Directory:', self.dir_vcs
+			print 'PO  Directory:', self.dir_po
+			print
 			dircontents = dircache.listdir(self.dir_vcs)
 			dircontents = dircontents[:]
 			dircontents.remove(self.file_README)
 			print len(dircontents), "repositories found:", ", ".join(map(str, dircontents))
-			pocontents = pocache.listdir(self.dir_po)
+			pocontents = dircache.listdir(self.dir_po)
 			pocontents = pocontents[:]
 			pocontents.remove(self.file_README)
 			print len(pocontents), "PO files found:", pocontents
+			sys.exit(0)
 
 		if self.opt_commit:
 			if not self.language:
@@ -236,11 +284,6 @@ class GNOMEI18nManage:
 				sys.exit(-3)
 			self.apply_translation_changes()
 			self.do_commit()
-
-		if self.opt_init and (self.language == '' or self.release == '' or self.username == ''):
-			print "Error: Required parameter(s) missing for initialisation"
-			self.usage()
-			sys.exit(-1)
 
 		if self.opt_init:
 			if not self.is_empty():
@@ -450,6 +493,7 @@ class GNOMEI18nManage:
  -b     --blank             blanks and clears the downloaded files
  -c CAT --category CAT      i18n category name CAT (such as 'desktop')
 	--clean             same as --blank
+	--config	    add/change a configuration option (stored in ~/.gnomemanagevcsrc)
         --commit            commit changes in repositories
  -d     --dry-run           do not really checkout/commit
  -h     --help              this craft
@@ -464,6 +508,7 @@ class GNOMEI18nManage:
  -t     --transtype TYPE    optionally specify translation type, either ui or doc
  -u USR --username USR      username USR (corresponds to SVN/GIT GNOME account)
         --update-vcs        update local repositories (runs git pull --rebase on each)
+        --vcsdir VCSDIR     specify the local directory with the GNOME GIT clones           
  -v     --verbose           show verbose output
 
  Default is to show this help text."""
@@ -507,5 +552,29 @@ class GNOMEI18nManage:
 	                if self.opt_verbose:
         	                print "Using cached file for ", url
 	        return localfilename
+
+	def writeconfig(self):
+		config = ConfigParser.ConfigParser()
+
+		config.add_section('Intltool-Manage-VCS')
+		config.set('Intltool-Manage-VCS', 'language', self.language)
+		config.set('Intltool-Manage-VCS', 'release', self.release)
+		config.set('Intltool-Manage-VCS', 'username', self.username)
+		config.set('Intltool-Manage-VCS', 'vcsdir', self.dir_vcs)
+		config.set('Intltool-Manage-VCS', 'podir', self.dir_po)
+
+		configfile = open(self.file_CONFIG, 'wb')
+		config.write(configfile)
+		configfile.close()
+
+	def readconfig(self):
+		config = ConfigParser.ConfigParser()
+		config.read(self.file_CONFIG)
+
+		self.language = config.get('Intltool-Manage-VCS', 'language')
+		self.release = config.get('Intltool-Manage-VCS', 'release')
+		self.username = config.get('Intltool-Manage-VCS', 'username')
+		self.dir_vcs = config.get('Intltool-Manage-VCS', 'vcsdir')
+		self.dir_po = config.get('Intltool-Manage-VCS', 'podir')
 
 start = GNOMEI18nManage(sys.argv)
