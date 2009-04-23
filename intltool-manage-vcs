@@ -265,12 +265,15 @@ class GNOMEI18nManage:
 			dircontents = dircache.listdir(self.dir_vcs)
 			dircontents = dircontents[:]
 			dircontents.remove(self.file_README)
-			print len(dircontents), "repositories found:", ", ".join(map(str, dircontents))
+			print len(dircontents), "repositories found:" 
+			print "\t", ", ".join(map(str, dircontents))
 			if os.path.exists(self.dir_po) or self.dir_po:
 				pocontents = dircache.listdir(self.dir_po)
 				pocontents = pocontents[:]
 				pocontents.remove(self.file_README)
-				print len(pocontents), "PO files found:", pocontents
+				print len(pocontents), "PO files found:" 
+				for pofile in pocontents:
+					print '\t', pofile
 			else:
 				print "No PO directory has been specified. Please specify"
 				print "such a directory with --config --podir <path to dir>."
