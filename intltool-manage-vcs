@@ -147,8 +147,8 @@ class GNOMEI18nManage:
 	xmlurl = ''
 	xmlfilename = ''
 
-	dir_po = 'PO/'
-	dir_vcs = 'VCS/'
+	dir_po = ''
+	dir_vcs = ''
 	file_START = 'START'
 	file_README = 'README'
 
@@ -168,6 +168,10 @@ class GNOMEI18nManage:
 		if not argv[1:]:
 			self.usage()
 			sys.exit(0)
+
+		self.file_CONFIG = os.getenv('HOME') + '/' + '.gnomemanagevcsrc'
+
+		self.readconfig()
 
 		try:
 		        opts, args = getopt.getopt(argv[1:], "abc:dhil:qr:st:u:", ["blank", 
@@ -201,7 +205,7 @@ class GNOMEI18nManage:
         		if o in ("-l", "--language"):
                 		self.language = a
 			if o in ("--podir"):
-			 	self.podir = a
+			 	self.dir_po = a
 			if o in ("-r", "--release"):
 			 	self.release = a
      			if o in ("-s", "--status"):
@@ -217,15 +221,13 @@ class GNOMEI18nManage:
 					print "ERROR: Invalid transtype, expected on of ui, doc, domain, document"
 					sys.exit(-4)
         		if o in ("--vcsdir"):
-                		self.vcsdir = a
+                		self.dir_vcs = a
         		if o in ("-v", "--verbose"):
                 		self.opt_verbose = True
         		if o in ("-u", "--username"):
                 		self.username = a
 			if o in ('--update-vcs'):
 				self.opt_updatevcs = True
-
-		self.file_CONFIG = os.getenv('HOME') + '/' + '.gnomemanagevcsrc'
 
 		if not self.opt_config and not os.path.exists(self.file_CONFIG):
 			print "Please specify the baseline configuration options"
@@ -235,26 +237,23 @@ class GNOMEI18nManage:
 			print "Exiting..."
 			sys.exit(-1)
 
-		if self.opt_config and (self.language == '' or self.release == '' or self.username == ''):
-			print "Error: Required parameter(s) missing for configuration"
-			print "When using the --config option, please specify at least"
-			print "the location of the VCS repositories. Use "
-			print "   --config --vcsdir /home/user/GNOME    Other options are"
-			print " 1. language (ISO 639), i.e. en, en_GB, el, fr, es"
-			print " 2. GNOME release, i.e. gnome-2-26, gnome-2-28"
-			print " 3. username (your git username, or 'anonymous' for anonymous clones"
-			print
-			print "Run this script without parameters for more help."
-			print "Exiting..."
-			sys.exit(-1)
+		#if self.opt_config and (self.language == '' or self.release == '' or self.username == ''):
+		#	print "Error: Required parameter(s) missing for configuration"
+		#	print "When using the --config option, please specify at least"
+		#	print "the location of the VCS repositories. Use "
+		#	print "   --config --vcsdir /home/user/GNOME    Other options are"
+		#	print " 1. --language LL, language (ISO 639), i.e. en, en_GB, el, fr, es"
+		#	print " 2. --release REL, GNOME release, i.e. gnome-2-26, gnome-2-28"
+		#	print " 3. --username USER, username (your git username, or 'anonymous' for anonymous clones"
+		#	print
+		#	print "Run this script without parameters for more help."
+		#	print "Exiting..."
+		#	sys.exit(-1)
 
 		if self.opt_config:
-			print self.release
 			self.writeconfig()
 			print "Use --status to view the current configuration settings."
 			sys.exit(0)
-
-		self.readconfig()
 
 		if self.opt_status:
 			print 'Language: %(lang)s\tRelease: %(rel)s\tUsername: %(u)s' % \
@@ -267,10 +266,15 @@ class GNOMEI18nManage:
 			dircontents = dircontents[:]
 			dircontents.remove(self.file_README)
 			print len(dircontents), "repositories found:", ", ".join(map(str, dircontents))
-			pocontents = dircache.listdir(self.dir_po)
-			pocontents = pocontents[:]
-			pocontents.remove(self.file_README)
-			print len(pocontents), "PO files found:", pocontents
+			if os.path.exists(self.dir_po) or self.dir_po:
+				pocontents = dircache.listdir(self.dir_po)
+				pocontents = pocontents[:]
+				pocontents.remove(self.file_README)
+				print len(pocontents), "PO files found:", pocontents
+			else:
+				print "No PO directory has been specified. Please specify"
+				print "such a directory with --config --podir <path to dir>."
+				print "Exiting..."
 			sys.exit(0)
 
 		if self.opt_commit:
@@ -556,12 +560,25 @@ class GNOMEI18nManage:
 	def writeconfig(self):
 		config = ConfigParser.ConfigParser()
 
-		config.add_section('Intltool-Manage-VCS')
-		config.set('Intltool-Manage-VCS', 'language', self.language)
-		config.set('Intltool-Manage-VCS', 'release', self.release)
-		config.set('Intltool-Manage-VCS', 'username', self.username)
-		config.set('Intltool-Manage-VCS', 'vcsdir', self.dir_vcs)
-		config.set('Intltool-Manage-VCS', 'podir', self.dir_po)
+		try:
+			config.add_section('Intltool-Manage-VCS')
+			if self.language:
+				config.set('Intltool-Manage-VCS', 'language', self.language)
+			if self.release:
+				config.set('Intltool-Manage-VCS', 'release', self.release)
+			if self.username:
+				config.set('Intltool-Manage-VCS', 'username', self.username)
+			if self.dir_vcs: 
+				if self.dir_vcs[-1] != '/':
+					self.dir_vcs += '/';
+				config.set('Intltool-Manage-VCS', 'vcsdir', self.dir_vcs)
+			if self.dir_po:
+				if self.dir_po[-1] != '/':
+					self.dir_po += '/';
+				config.set('Intltool-Manage-VCS', 'podir', self.dir_po)
+		except ConfigParser.NoOptionError, err:
+			print "Error:", err
+			sys.exit(10)
 
 		configfile = open(self.file_CONFIG, 'wb')
 		config.write(configfile)
@@ -569,12 +586,17 @@ class GNOMEI18nManage:
 
 	def readconfig(self):
 		config = ConfigParser.ConfigParser()
-		config.read(self.file_CONFIG)
+		if os.path.exists(self.file_CONFIG):
+			config.read(self.file_CONFIG)
 
-		self.language = config.get('Intltool-Manage-VCS', 'language')
-		self.release = config.get('Intltool-Manage-VCS', 'release')
-		self.username = config.get('Intltool-Manage-VCS', 'username')
-		self.dir_vcs = config.get('Intltool-Manage-VCS', 'vcsdir')
-		self.dir_po = config.get('Intltool-Manage-VCS', 'podir')
+			try:
+				self.language = config.get('Intltool-Manage-VCS', 'language')
+				self.release = config.get('Intltool-Manage-VCS', 'release')
+				self.username = config.get('Intltool-Manage-VCS', 'username')
+				self.dir_vcs = config.get('Intltool-Manage-VCS', 'vcsdir')
+				self.dir_po = config.get('Intltool-Manage-VCS', 'podir')
+			except ConfigParser.NoOptionError, err:
+				print "Error:", err
+				sys.exit(10)
 
 start = GNOMEI18nManage(sys.argv)
