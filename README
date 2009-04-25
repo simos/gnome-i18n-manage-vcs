@@ -4,6 +4,11 @@ For example, if you want to edit several translation files and then
 commit them to GNOME VCS, this tool automates the VCS access so that
 what you need to worry is only the editing of the translation files.
 
+Currently, the VCS is git throughout this program.
+
+Workflow
+1. Managing GIT repositories
+
 $ ./intltool-manage-vcs
 intltool-manage-vcs a tool that helps manage translation files from a VCS
 Available parameters:
