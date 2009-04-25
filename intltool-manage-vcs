@@ -290,7 +290,7 @@ class GNOMEI18nManage:
 				print 'Directories are empty, cannot commit translation changes; exiting'
 				sys.exit(-3)
 			self.apply_translation_changes()
-			self.do_commit()
+			#self.do_commit()
 
 		if self.opt_init:
 			if not self.is_empty():
@@ -325,29 +325,39 @@ class GNOMEI18nManage:
 				counter = counter + 1
 
 	def apply_translation_changes(self):
-		dircontents = dircache.listdir(self.dir_po)
-		dircontents = dircontents[:]
-		dircontents.remove(self.file_README)	
+		vcsdircontents = dircache.listdir(self.dir_vcs)
+		vcsdircontents = vcsdircontents[:]
+		podircontents = dircache.listdir(self.dir_po)
+		podircontents = podircontents[:]
+		try:
+			vcsdircontents.remove(self.file_README)	
+		except ValueError, err:
+			pass
+		try:
+			podircontents.remove(self.file_README)	
+		except ValueError, err:
+			pass
 		start_time = os.stat(self.dir_po + self.file_START).st_mtime
-		for pofile in dircontents:
+		for pofile in podircontents:
 			if start_time < os.stat(self.dir_po + pofile).st_mtime:
 				try:
-					os.stat( pofile)
+					print "Stating", pofile
+					os.stat( self.dir_po + pofile)
 				except OSError, err:
 					print 'You do not have an initial translation for', pofile
 					print ' Please perform the commit manually. We welcome patches'
 					print ' to implement automatic addition of new translations.'
 					continue
 				if self.opt_verbose:
-					print 'Copying', self.dir_po + pofile, 'to',  pofile
+					print 'Copying', self.dir_po + pofile, 'to', self.dir_vcs +  pofile
 				if not self.opt_dryrun:
 					shutil.copyfile(self.dir_po + pofile,  pofile)
 
 	def do_commit(self):
-		dircontents = dircache.listdir(self.dir_vcs)
-		dircontents = dircontents[:]
-		dircontents.remove(self.file_README)	
-		for vcsdir in dircontents:
+		vcsdircontents = dircache.listdir(self.dir_vcs)
+		vcsdircontents = vcsdircontents[:]
+		vcsdircontents.remove(self.file_README)	
+		for vcsdir in vcsdircontents:
 			# We commit irrespective of any changed files; if files are not changed, 
 			# no harm is done.
 			if self.opt_verbose:
@@ -364,7 +374,10 @@ class GNOMEI18nManage:
 		for dir in [self.dir_po]:
 			dircontents = dircache.listdir(dir)
 			dircontents = dircontents[:]
-			dircontents.remove(self.file_README)	
+			try:
+				dircontents.remove(self.file_README)	
+			except ValueError, err:
+				pass
 			if dircontents:
 				return False
 		return True
@@ -373,7 +386,10 @@ class GNOMEI18nManage:
 		for dir in [self.dir_po]:
 			dircontents = dircache.listdir(dir)
 			dircontents = dircontents[:]
-			dircontents.remove(self.file_README)	
+			try:
+				dircontents.remove(self.file_README)	
+			except ValueError, err:
+				pass
 			if dircontents:
 				for item in dircontents:
 					if os.path.isdir(dir + item):
