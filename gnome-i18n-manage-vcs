@@ -148,6 +148,7 @@ class GNOMEI18nManage:
 
 	xmlurl = ''
 	xmlfilename = ''
+	gnome_release_data = []
 
 	dir_po = ''
 	dir_vcs = ''
@@ -156,6 +157,7 @@ class GNOMEI18nManage:
 	file_CONFIG = ''
 
 	action_config = False
+	action_status = False
 	action_vcsmanage = False
 	action_poget = False
 	action_pocommit = False
@@ -164,7 +166,6 @@ class GNOMEI18nManage:
 	opt_dryrun = False
 	opt_init = False
 	opt_clean = False
-	opt_status = False
 	opt_gitverbose = False
 	opt_verbose = False
 	opt_updatevcs = False
@@ -178,14 +179,22 @@ class GNOMEI18nManage:
 
 		if argv[1] == 'config':
                 	self.action_config = True
+		if argv[1] == 'status':
+                	self.action_status = True
 		elif argv[1] == 'vcsmanage':
 			self.action_vcsmanage = True
+		elif argv[1] == 'poget':
+			self.action_poget = True
+		elif argv[1] == 'pocommit':
+			self.action_pocommit = True
 		else:
 			print 'Please specify action'
 			print 'Available actions are:'
 			print ' * config       configures the local settings'
+			print ' * status       show detailed status'
 			print ' * vcsmanage    repository management tasks'
-			print ' * ....         '
+			print ' * poget        retrieval of PO files'
+			print ' * pocommit     commiting PO files'
 			print 
 			print 'Exiting...'
 			sys.exit(11)
@@ -194,16 +203,111 @@ class GNOMEI18nManage:
 
 		if self.action_config:
 			self.process_config(argv[2:])
-
-		if self.action_vcsmanage:
+		if self.action_status:
+			self.process_status(argv[2:])
+		elif self.action_vcsmanage:
 			self.process_vcsmanage(argv[2:])
+		elif self.action_poget:
+			self.process_poget(argv[2:])
+		elif self.action_pocommit:
+			self.process_pocommit(argv[2:])
+
+	def process_status(self, cmdargs):
+		self.show_status()
+
+	def process_poget(self, cmdargs):
+		try:
+		        opts, args = getopt.getopt(cmdargs, 'c:dhqst:u:', ['category=', 'clean', 
+						'commit', 'dryrun', 'dry-run', 
+						'help', 'module=', 'transtype=', 'verbose' ])
+		except getopt.GetoptError, err:
+			print 'Error', err
+        		self.usage()
+        		sys.exit(0)
+		for o, a in opts:
+        		if o in ('--clean'):
+        			self.opt_clean = True
+        		if o in ('-c', '--category'):
+        	 		self.category = a
+        		if o in ('--dryrun', '--dry-run'):
+        			self.opt_dryrun = True
+	        	if o in ('-h', '--help'):
+       	  		     	self.usage()
+        		     	sys.exit()
+        		if o in ('-m', '--module'):
+        			self.module = a
+     			if o in ('--transtype'):
+				if a in ['ui', 'domain']:
+					self.transtype = 'domain'
+				elif a in ['doc', 'document']:
+					self.transtype = 'document'
+				else:
+					print 'ERROR: Invalid transtype, expected on of ui, doc, domain, document'
+					sys.exit(-4)
+        		if o in ('-v', '--verbose'):
+        			self.opt_verbose = True
+
+		if self.opt_clean:
+			podircontents = dircache.listdir(self.dir_po)
+			podircontents = podircontents[:]
+			try: 
+				podircontents.remove(self.file_START)
+			except ValueError, err:
+				pass
+			print 'Found', len(podircontents), 'PO files to remove' 
+			for pofile in podircontents:
+				if self.opt_dryrun:
+					print 'To remove', pofile
+				else:
+					print 'Removing', pofile
+					os.remove(self.dir_po + pofile)
+			sys.exit(0)
+
+		self.parse_gnome_release_data()	
+		release = self.gnome_release_data['release']
+		language = self.gnome_release_data['language']
+		print 'Release  :', release
+		print 'Language :', language
+		for cat in self.gnome_release_data['categories'].keys():
+			if self.category != '' and cat != self.category:
+				continue
+			print '    Category: %(cat)s' % { 'cat': cat }
+			for mod in self.gnome_release_data['categories'][cat]:
+				if self.module != '' and mod != self.module:
+					continue
+				print '        Module: %(br)22s, Branch: %(mod)s' % { 'br': mod, \
+					'mod': self.gnome_release_data['categories'][cat][mod]['branch'] }
+				for resource in self.gnome_release_data['categories'][cat][mod]['resource']:
+					if self.transtype: 
+						if resource['id'] not in self.transtype:
+							continue
+					if self.opt_verbose:
+						print '        ID:', resource['id'], 'Type:', resource['type']
+						print '          POFile:', resource['pofile']
+						print '          VCSPath:', resource['vcspath']
+					pofilename = resource['pofile'].rsplit('/')[-1]
+
+					if self.opt_verbose:
+						CMD2 = 'wget http://l10n.gnome.org' + resource['pofile'] + \
+							' -O ' + self.dir_po + pofilename
+					else:
+						CMD2 = 'wget --quiet http://l10n.gnome.org' + resource['pofile'] + \
+							' -O ' + self.dir_po + pofilename
+
+					if self.opt_dryrun and self.opt_verbose:
+						print '            CMD:', CMD2
+					elif not self.opt_dryrun:
+						if self.opt_verbose:
+							print '\t\tTouching current time at', self.dir_po + self.file_START
+						os.system('touch ' + self.dir_po + self.file_START)
+						os.system(CMD2)
 
 	def process_vcsmanage(self, cmdargs):
 		try:
 		        opts, args = getopt.getopt(cmdargs, 'ac:dhl:qr:st:u:', ['category=', 'clean', 
 						'commit', 'dryrun', 'dry-run', 
 						'help', 'module=',
-						'release=', 'status', 'gitverbose', 'transtype=', 
+						'release=', 'gitverbose', 'transtype=', 
 						'vcsdir=', 'verbose', 'username=', 'update-vcs' ])
 		except getopt.GetoptError, err:
 			print 'Error', err
@@ -223,8 +327,6 @@ class GNOMEI18nManage:
         			self.module = a
 			if o in ('-r', '--release'):
 			 	self.release = a
-     			if o in ('-s', '--status'):
-				self.opt_status = True
      			if o in ('--transtype'):
 				if a in ['ui', 'domain']:
 					self.transtype = 'domain'
@@ -241,10 +343,6 @@ class GNOMEI18nManage:
         			self.username = a
 			if o in ('--update-vcs'):
 				self.opt_updatevcs = True
-
-		if self.opt_status:
-			self.show_status()
-			sys.exit(0)
 
 		if self.opt_commit:
 			if not self.language:
@@ -345,10 +443,6 @@ class GNOMEI18nManage:
 		self.writeconfig()
 		if self.opt_verbose:
 			print 'Use "config --status" to view the current configuration settings.'
-
-		if self.opt_status:
-			self.show_status()
-			sys.exit(0)
 
         def show_status(self):
 		print 'Language: %(langfull)s - [%(lang)s]\tRelease: %(rel)s\tUsername: %(u)s' % \
@@ -452,7 +546,7 @@ class GNOMEI18nManage:
 		else:
 			self.process_stats('execute')
 
-	def process_stats(self, action):	
+	def parse_gnome_release_data(self):
 		self.xmlurl = 'http://l10n.gnome.org/languages/' + self.language + '/gnome-2-26/xml'
 		self.xmlfilename = self.download_file(self.xmlurl)
 
@@ -462,21 +556,24 @@ class GNOMEI18nManage:
 			os.remove(self.xmlfilename)
 			sys.exit(-7)
 
-		stats = self.parse_gnome_xml_file(self.xmlfilename)
-	
-		release = stats['release']
-		language = stats['language']
+		self.gnome_release_data = self.parse_gnome_xml_file(self.xmlfilename)
+
+	def process_stats(self, action):	
+		self.parse_gnome_release_data()
+		release = self.gnome_release_data['release']
+		language = self.gnome_release_data['language']
 		print 'Release  :', release
 		print 'Language :', language
-		for cat in stats['categories'].keys():
+		for cat in self.gnome_release_data['categories'].keys():
 			if self.category != '' and cat != self.category:
 				continue
 			print '    Category: %(cat)s' % { 'cat': cat }
-			for mod in stats['categories'][cat]:
+			for mod in self.gnome_release_data['categories'][cat]:
 				if self.module != '' and mod != self.module:
 					continue
-				print '        Module: %(br)22s, Branch: %(mod)s' % { 'br': mod, 'mod': stats['categories'][cat][mod]['branch'] }
-				for resource in stats['categories'][cat][mod]['resource']:
+				print '        Module: %(br)22s, Branch: %(mod)s' % { 'br': mod, \
+					'mod': self.gnome_release_data['categories'][cat][mod]['branch'] }
+				for resource in self.gnome_release_data['categories'][cat][mod]['resource']:
 					if self.transtype: 
 						if resource['id'] not in self.transtype:
 							continue
@@ -488,7 +585,7 @@ class GNOMEI18nManage:
 					#vcspathtemp = resource['vcspath'].replace('/cgit/', '/git/')
 					#vcspath = vcspathtemp.replace('http://', 'ssh://' + self.username + '@')
 					vcspath = 'ssh://' + self.username + '@' + 'git.gnome.org/git/' + mod
-					branch = stats['categories'][cat][mod]['branch']
+					branch = self.gnome_release_data['categories'][cat][mod]['branch']
 					alignment = ''
 					if resource['type'] == 'help' or resource['id'] == 'document':
 						alignment = 'help/el/'
@@ -511,11 +608,11 @@ class GNOMEI18nManage:
 						CMD2 = 'wget --quiet http://l10n.gnome.org' + resource['pofile'] + \
 							' -O ' + self.dir_po + pofilename
 
-					if action == 'print' and self.opt_verbose:
+					if self.opt_dryrun and self.opt_verbose:
 						print '            CMD:', CMD1
 						print '            CMD:', CMD2
 						print '            CMD:', CMD3
-					elif action == 'execute':
+					elif not self.opt_dryrun:
 						if self.opt_verbose:
 							print '\t\tTouching current time at', self.dir_po + self.file_START
 						os.system('touch ' + self.dir_po + self.file_START)
@@ -560,28 +657,28 @@ class GNOMEI18nManage:
  	       --languagefull LANG language name (as in "British English", Greek, etc)
 	       --podir PODIR       directory with .po files for uploading
  	-r REL --release REL       release REL (such as 'gnome-2-26')
- 	-s     --status            show status
                --vcsdir VCSDIR     specify the local directory with the GNOME GIT clones           
  	-u USR --username USR      username USR (corresponds to SVN/GIT GNOME account)
 
- vcsmanage   Local repository management
-	 -c CAT --category CAT      i18n category name CAT (such as 'desktop')
+ status      Show current status
+
+ vcsmanage   Local repository management (Module filtering applies)
 		--clean             clears up the downloaded files (USE WITH CARE, WIPES REPOSITORIES)
-	 -m MOD --module MOD        i18n module name MOD (such as 'gnome-games')
 	 -r     --reset             Reset each repository (git reset --hard origin/master)
 	        --gitquiet          Add --quiet to GIT cloning
-	 -t     --transtype TYPE    optionally specify translation type, either ui or doc
 	        --update-vcs        update local repositories (runs git pull --rebase on each)
 
- poget       Retrieve a selection of PO files (otherwise place PO files manually, from l10n.gnome.org)
-	 -c CAT --category CAT      i18n category name CAT (such as 'desktop')
-		--clean             clears up the downloaded files (USE WITH CARE, WIPES REPOSITORIES)
-	 -m MOD --module MOD        i18n module name MOD (such as 'gnome-games')
-	 -t     --transtype TYPE    optionally specify translation type, either ui or doc
+ poget       Retrieve a selection of PO files (Module filtering applies)
+		--clean             clears up the downloaded files (USE WITH CARE, WIPES PO FILES)
 
  pocommit    Commit and push the translation work to the repositories
 	        --commit            commit changes in repositories
 	 -d     --dry-run           do not really checkout/commit
+
+ Module filtering
+	 -c CAT --category CAT      i18n category name CAT (such as 'desktop')
+	 -m MOD --module MOD        i18n module name MOD (such as 'gnome-games')
+	 -t     --transtype TYPE    optionally specify translation type, either ui or doc
 
  Common options
 	 -d     --dry-run           do not really perform the action

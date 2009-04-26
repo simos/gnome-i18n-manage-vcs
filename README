@@ -19,30 +19,53 @@ B. Managing VCS (GIT) repositories [vcsmanage]
 1. 
 
 C. Retrieving PO files [poget]
-1. 
+1. Download all PO files for a release
+gnome-i18n-manage-vcs poget
+2. Download PO documentation files for gnome-games
+gnome-i18n-manage-vcs poget --module gnome-games --transtype doc
+3. Clean downloaded PO files
+gnome-i18n-manage-vcs poget --clean
+4. Clean downloaded PO files (dry run)
+gnome-i18n-manage-vcs poget --clean --dry-run
 
 D. Commiting PO files [pocommit]
 1. 
 
 $ ./gnome-i18n-manage-vcs
-gnome-i18n-manage-vcs a tool that helps automate the manual tasks of a GNOME translator.
-Available parameters:
- -b     --blank             blanks and clears the downloaded files
- -c CAT --category CAT      i18n category name CAT (such as 'desktop')
-        --commit            commit changes in repositories
- -d     --dry-run           do not really checkout/commit
- -h     --help              this craft
- -i     --init              when initialising, --language, --release, 
-                             and --username are REQUIRED.
- -m MOD --module MOD        i18n module name MOD (such as 'gnome-games')
- -l LL  --language LL       language code per ISO 639
- -q     --quiet             Be quiet (less output)
- -r REL --release REL       release REL (such as 'gnome-2-26')
- -s     --status            show status
-        --svnverbose        Add --quiet to the SVN checkouts
- -t     --transtype TYPE    optionally specify translation type, either ui or doc
- -u USR --username USR      username USR (corresponds to SVN/GIT GNOME account)
- -v     --verbose           show verbose output
+gnome-i18n-manage-vcs a tool that helps manage translation files from a VCS
+Usage: gnome-i18n-manage-vcs <action> <options>
+Available actions:
+ config      Initial configuration (stored in ~/.gnomemanagevcsrc)
+ 	-l LL  --language LL       language code per ISO 639
+ 	       --languagefull LANG language name (as in "British English", Greek, etc)
+	       --podir PODIR       directory with .po files for uploading
+ 	-r REL --release REL       release REL (such as 'gnome-2-26')
+               --vcsdir VCSDIR     specify the local directory with the GNOME GIT clones           
+ 	-u USR --username USR      username USR (corresponds to SVN/GIT GNOME account)
 
- Default is to show this help text.
+ status      Show current status
+
+ vcsmanage   Local repository management (Module filtering applies)
+		--clean             clears up the downloaded files (USE WITH CARE, WIPES REPOSITORIES)
+	 -r     --reset             Reset each repository (git reset --hard origin/master)
+	        --gitquiet          Add --quiet to GIT cloning
+	        --update-vcs        update local repositories (runs git pull --rebase on each)
+
+ poget       Retrieve a selection of PO files (Module filtering applies)
+		--clean             clears up the downloaded files (USE WITH CARE, WIPES PO FILES)
+
+ pocommit    Commit and push the translation work to the repositories
+	        --commit            commit changes in repositories
+	 -d     --dry-run           do not really checkout/commit
+
+ Module filtering
+	 -c CAT --category CAT      i18n category name CAT (such as 'desktop')
+	 -m MOD --module MOD        i18n module name MOD (such as 'gnome-games')
+	 -t     --transtype TYPE    optionally specify translation type, either ui or doc
+
+ Common options
+	 -d     --dry-run           do not really perform the action
+	 -h     --help              this craft
+	 -q     --quiet             be quiet (even less output)
+	 -v     --verbose           show verbose output
 $ _
