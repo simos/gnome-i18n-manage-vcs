@@ -156,7 +156,9 @@ class GNOMEI18nManage:
 	file_CONFIG = ''
 
 	action_config = False
-	action_vcs = False
+	action_vcsmanage = False
+	action_poget = False
+	action_pocommit = False
 
 	opt_commit = False
 	opt_dryrun = False
@@ -176,13 +178,13 @@ class GNOMEI18nManage:
 
 		if argv[1] == 'config':
                 	self.action_config = True
-		elif argv[1] == 'vcs':
-			self.action_vcs = True
+		elif argv[1] == 'vcsmanage':
+			self.action_vcsmanage = True
 		else:
 			print 'Please specify action'
 			print 'Available actions are:'
 			print ' * config       configures the local settings'
-			print ' * vcs          repository management tasks'
+			print ' * vcsmanage    repository management tasks'
 			print ' * ....         '
 			print 
 			print 'Exiting...'
@@ -193,49 +195,52 @@ class GNOMEI18nManage:
 		if self.action_config:
 			self.process_config(argv[2:])
 
-		if self.action_vcs:
-			try:
-			        opts, args = getopt.getopt(argv[2:], 'ac:dhl:qr:st:u:', ['category=', 'clean', 
-							'commit', 'dryrun', 'dry-run', 
-							'help', 'module=',
-							'release=', 'status', 'gitverbose', 'transtype=', 
-							'vcsdir=', 'verbose', 'username=', 'update-vcs' ])
-			except getopt.GetoptError, err:
-				print 'Error', err
-        			self.usage()
-        			sys.exit(0)
-			for o, a in opts:
-        			if o in ('--clean'):
-                			self.opt_clean = True
-        			if o in ('-c', '--category'):
-               		 		self.category = a
-        			if o in ('--dryrun', '--dry-run'):
-                			self.opt_dryrun = True
-		        	if o in ('-h', '--help'):
-       		  		     	self.usage()
-                		     	sys.exit()
-        			if o in ('-m', '--module'):
-                			self.module = a
-				if o in ('-r', '--release'):
-				 	self.release = a
-     				if o in ('-s', '--status'):
-					self.opt_status = True
-     				if o in ('--transtype'):
-					if a in ['ui', 'domain']:
-						self.transtype = 'domain'
-					elif a in ['doc', 'document']:
-						self.transtype = 'document'
-					else:
-						print 'ERROR: Invalid transtype, expected on of ui, doc, domain, document'
-						sys.exit(-4)
-        			if o in ('--vcsdir'):
-                			self.dir_vcs = a
-        			if o in ('-v', '--verbose'):
-                			self.opt_verbose = True
-        			if o in ('-u', '--username'):
-                			self.username = a
-				if o in ('--update-vcs'):
-					self.opt_updatevcs = True
+		if self.action_vcsmanage:
+			self.process_vcsmanage(argv[2:])
+
+	def process_vcsmanage(self, cmdargs):
+		try:
+		        opts, args = getopt.getopt(cmdargs, 'ac:dhl:qr:st:u:', ['category=', 'clean', 
+						'commit', 'dryrun', 'dry-run', 
+						'help', 'module=',
+						'release=', 'status', 'gitverbose', 'transtype=', 
+						'vcsdir=', 'verbose', 'username=', 'update-vcs' ])
+		except getopt.GetoptError, err:
+			print 'Error', err
+        		self.usage()
+        		sys.exit(0)
+		for o, a in opts:
+        		if o in ('--clean'):
+        			self.opt_clean = True
+        		if o in ('-c', '--category'):
+        	 		self.category = a
+        		if o in ('--dryrun', '--dry-run'):
+        			self.opt_dryrun = True
+	        	if o in ('-h', '--help'):
+       	  		     	self.usage()
+        		     	sys.exit()
+        		if o in ('-m', '--module'):
+        			self.module = a
+			if o in ('-r', '--release'):
+			 	self.release = a
+     			if o in ('-s', '--status'):
+				self.opt_status = True
+     			if o in ('--transtype'):
+				if a in ['ui', 'domain']:
+					self.transtype = 'domain'
+				elif a in ['doc', 'document']:
+					self.transtype = 'document'
+				else:
+					print 'ERROR: Invalid transtype, expected on of ui, doc, domain, document'
+					sys.exit(-4)
+        		if o in ('--vcsdir'):
+        			self.dir_vcs = a
+        		if o in ('-v', '--verbose'):
+        			self.opt_verbose = True
+        		if o in ('-u', '--username'):
+        			self.username = a
+			if o in ('--update-vcs'):
+				self.opt_updatevcs = True
 
 		if self.opt_status:
 			self.show_status()
@@ -252,17 +257,6 @@ class GNOMEI18nManage:
 				sys.exit(-3)
 			self.apply_translation_changes()
 			#self.do_commit()
-
-		if self.opt_init:
-			if not self.is_empty():
-				print 'ERROR: Cannot init when directories are not empty.'
-				print 'Once you commit your work, please run with --blank'
-				print 'parameter in order to clear the working space.'
-				print 'Then, try to --init again.'
-				print 'Exiting...'
-				sys.exit(-2)
-			else:
-				self.init()
 
 		if self.opt_clean:
 			self.do_blank()
@@ -559,37 +553,42 @@ class GNOMEI18nManage:
 
 	def usage(self):
 		print PROGNAME, 'a tool that helps manage translation files from a VCS'
-		print 'GNOME SWITCHED TO GIT. THIS SCRIPT IS BEING UPDATED. USE WITH CARE.'
 		print 'Usage:', PROGNAME, '<action> <options>'
 	        print """Available actions:
  config      Initial configuration (stored in ~/.gnomemanagevcsrc)
- 	-h     --help              this craft
  	-l LL  --language LL       language code per ISO 639
  	       --languagefull LANG language name (as in "British English", Greek, etc)
 	       --podir PODIR       directory with .po files for uploading
  	-r REL --release REL       release REL (such as 'gnome-2-26')
  	-s     --status            show status
- 	-v     --verbose           show verbose output
                --vcsdir VCSDIR     specify the local directory with the GNOME GIT clones           
  	-u USR --username USR      username USR (corresponds to SVN/GIT GNOME account)
 
- vcs         Local repository management
+ vcsmanage   Local repository management
 	 -c CAT --category CAT      i18n category name CAT (such as 'desktop')
-		--clean             clears up the downloaded files (USE WITH CARE)
-		--config	    add/change a configuration option (stored in ~/.gnomemanagevcsrc)
-	        --commit            commit changes in repositories
-	 -d     --dry-run           do not really checkout/commit
-	 -h     --help              this craft
-	 -i     --init              when initialising, --language, --release, 
-	                             and --username are REQUIRED.
+		--clean             clears up the downloaded files (USE WITH CARE, WIPES REPOSITORIES)
 	 -m MOD --module MOD        i18n module name MOD (such as 'gnome-games')
-	 -q     --quiet             Be quiet (less output)
-	        --gitverbose        Add --quiet to GIT cloning
+	 -r     --reset             Reset each repository (git reset --hard origin/master)
+	        --gitquiet          Add --quiet to GIT cloning
 	 -t     --transtype TYPE    optionally specify translation type, either ui or doc
 	        --update-vcs        update local repositories (runs git pull --rebase on each)
-	 -v     --verbose           show verbose output
 
- Default is to show this help text."""
+ poget       Retrieve a selection of PO files (otherwise place PO files manually, from l10n.gnome.org)
+	 -c CAT --category CAT      i18n category name CAT (such as 'desktop')
+		--clean             clears up the downloaded files (USE WITH CARE, WIPES REPOSITORIES)
+	 -m MOD --module MOD        i18n module name MOD (such as 'gnome-games')
+	 -t     --transtype TYPE    optionally specify translation type, either ui or doc
+
+ pocommit    Commit and push the translation work to the repositories
+	        --commit            commit changes in repositories
+	 -d     --dry-run           do not really checkout/commit
+
+ Common options
+	 -d     --dry-run           do not really perform the action
+	 -h     --help              this craft
+	 -q     --quiet             be quiet (even less output)
+	 -v     --verbose           show verbose output
+"""
 
 	def download_hook(self, blocks_transferred, block_size, file_size):
 	        """ A download hook to provide some feedback when downloading """

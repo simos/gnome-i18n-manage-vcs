@@ -7,13 +7,22 @@ what you need to worry is only the editing of the translation files.
 Currently, the VCS is git throughout this program.
 
 Workflows
-A. Configuration
+A. Configuration [config]
 1. Show current configuration
 gnome-i18n-manage-vcs --status
+2. Initial configuration (requires all options)
+gnome-i18n-manage-vcs config --language el --languagefull Greek --podir `pwd`/PO --release gnome-2-26 --vcsdir `pwd`/VCS -u simos
+3. Subsequent modification of configuration
+gnome-i18n-manage-vcs config --release gnome-2-28
 
+B. Managing VCS (GIT) repositories [vcsmanage]
+1. 
 
-B. Managing GIT repositories
-C. 
+C. Retrieving PO files [poget]
+1. 
+
+D. Commiting PO files [pocommit]
+1. 
 
 $ ./gnome-i18n-manage-vcs
 gnome-i18n-manage-vcs a tool that helps automate the manual tasks of a GNOME translator.
