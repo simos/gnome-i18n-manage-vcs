@@ -24,6 +24,7 @@ import shutil		# shutil.rmtree()
 import sys		# sys.argv, sys.exit()
 import urllib		# urllib.urlretrieve()
 import ConfigParser	# ConfigParser()
+from datetime import datetime	# datetime()
 
 try:
 	from lxml import etree  # etree.XMLParser(), etree.XML()
@@ -237,31 +238,7 @@ class GNOMEI18nManage:
 					self.opt_updatevcs = True
 
 		if self.opt_status:
-			print 'Language: %(lang)s\tRelease: %(rel)s\tUsername: %(u)s' % \
-					{ 'lang': self.language, 'rel': self.release, 'u': self.username }
-			print
-			print 'VCS Directory:', self.dir_vcs
-			print 'PO  Directory:', self.dir_po
-			print
-			dircontents = dircache.listdir(self.dir_vcs)
-			dircontents = dircontents[:]
-				
-			print len(dircontents), 'repositories found:' 
-			print '\t', ', '.join(map(str, dircontents))
-			if os.path.exists(self.dir_po) or self.dir_po:
-				pocontents = dircache.listdir(self.dir_po)
-				pocontents = pocontents[:]
-				try: 
-					pocontents.remove(self.file_START)
-				except ValueError, err:
-					pass
-				print len(pocontents), 'PO files found:' 
-				for pofile in pocontents:
-					print '\t', pofile
-			else:
-				print 'No PO directory has been specified. Please specify'
-				print 'such a directory with --config --podir <path to dir>.'
-				print 'Exiting...'
+			self.show_status()
 			sys.exit(0)
 
 		if self.opt_commit:
@@ -364,33 +341,54 @@ class GNOMEI18nManage:
 			print 'Exiting...'
 			sys.exit(-1)
 
+		for dir in [self.dir_po, self.dir_vcs]:
+			if not os.path.exists(dir):
+				print 'Directory', dir, 'does not exist.'
+				print 'Please create it and try again.'
+				print 'Exiting...'
+				sys.exit(-1)
+
 		self.writeconfig()
 		if self.opt_verbose:
 			print 'Use "config --status" to view the current configuration settings.'
 
 		if self.opt_status:
-			print 'Language: %(langfull)s - [%(lang)s]\tRelease: %(rel)s\tUsername: %(u)s' % \
-					{ 'langfull': self.languagefull, 'lang': self.language, 
-					  'rel': self.release, 'u': self.username }
-			print
-			print 'VCS Directory:', self.dir_vcs
-			print 'PO  Directory:', self.dir_po
-			print
-			dircontents = dircache.listdir(self.dir_vcs)
-			dircontents = dircontents[:]
-			print len(dircontents), 'repositories found:' 
-			print '\t', ', '.join(map(str, dircontents))
-			if os.path.exists(self.dir_po) or self.dir_po:
-				pocontents = dircache.listdir(self.dir_po)
-				pocontents = pocontents[:]
-				print len(pocontents), 'PO files found:' 
-				for pofile in pocontents:
-					print '\t', pofile
-			else:
-				print 'No PO directory has been specified. Please specify'
-				print 'such a directory with --config --podir <path to dir>.'
-				print 'Exiting...'
+			self.show_status()
 			sys.exit(0)
+
+        def show_status(self):
+		print 'Language: %(langfull)s - [%(lang)s]\tRelease: %(rel)s\tUsername: %(u)s' % \
+				{ 'langfull': self.languagefull, 'lang': self.language, 
+				  'rel': self.release, 'u': self.username }
+		print
+		print 'VCS Directory:', self.dir_vcs
+		print 'PO  Directory:', self.dir_po
+		print
+		dircontents = dircache.listdir(self.dir_vcs)
+		dircontents = dircontents[:]
+		print len(dircontents), 'repositories found:' 
+		print '\t', ', '.join(map(str, dircontents))
+		if os.path.exists(self.dir_po) or self.dir_po:
+			podircontents = dircache.listdir(self.dir_po)
+			podircontents = podircontents[:]
+			try: 
+				podircontents.remove(self.file_START)
+			except ValueError, err:
+				pass
+			print len(podircontents), 'PO files found:' 
+			for pofile in podircontents:
+				print '\t', pofile
+		else:
+			print 'No PO directory has been specified. Please specify'
+			print 'such a directory with --config --podir <path to dir>.'
+			print 'Exiting...'
+		start_time = os.stat(self.dir_po + self.file_START).st_mtime
+		print 'Timestamp file START has date/time:',  datetime.ctime(datetime.fromtimestamp(start_time))
+		print 'PO files that are newer than timestamp:'
+		for pofile in podircontents:
+			potime = os.stat(self.dir_po + pofile).st_mtime
+			if start_time < potime:
+				print '\t', datetime.ctime(datetime.fromtimestamp(potime)), '\t', pofile
 
 	def apply_translation_changes(self):
 		vcsdircontents = dircache.listdir(self.dir_vcs)
