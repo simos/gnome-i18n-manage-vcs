@@ -179,7 +179,7 @@ class GNOMEI18nManage:
 
 		if argv[1] == 'config':
                 	self.action_config = True
-		if argv[1] == 'status':
+		elif argv[1] == 'status':
                 	self.action_status = True
 		elif argv[1] == 'vcsmanage':
 			self.action_vcsmanage = True
@@ -377,6 +377,10 @@ class GNOMEI18nManage:
 				counter = counter + 1
 
 	def process_config(self, cmdargs):
+		if not cmdargs:
+			self.usage()
+			sys.exit(0)
+
 		try:
 		        opts, args = getopt.getopt(cmdargs, 'hl:r:su:v', [
 						'help', 'language=', 'languagefull=', 
