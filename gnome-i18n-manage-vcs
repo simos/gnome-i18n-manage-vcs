@@ -561,27 +561,56 @@ class GNOMEI18nManage:
 			pass
 		start_time = os.stat(self.dir_po + self.file_START).st_mtime
 		for pofile in podircontents:
+			print 'VCSPATH', self.get_po_file_data(pofile)
 			fileparts = pofile.split('.')
-			if fileparts[0][-5:] != '-help':
-				modulename = fileparts[0]
-				translationtype = '/po/'
-			else:
-				modulename = fileparts[0][:-5]
-				translationtype = '/help/' + self.language + '/'
-			branchname = fileparts[1]
-			languagename = fileparts[2]
-			extensionname = fileparts[3]
+			try:
+				if fileparts[0][-5:] != '-help':
+					modulename = fileparts[0]
+					translationtype = '/po/'
+				else:
+					modulename = fileparts[0][:-5]
+					translationtype = '/help/' + self.language + '/'
+				branchname = fileparts[1]
+				languagename = fileparts[2]
+				extensionname = fileparts[3]
+			except IndexError, err:
+				print "Error with", pofile
+				sys.exit(13)
 			if self.language != languagename:
 				print 'Internal error: Language in config does not match language in PO files.'
 				print 'Exiting...'
 				sys.exit(-11)
 			if start_time < os.stat(self.dir_po + pofile).st_mtime:
 				if self.opt_verbose:
-					print 'Copying', self.dir_po + pofile, 'to', self.dir_vcs + \
+					destination =  self.dir_vcs + \
 						modulename + translationtype + languagename + '.' + extensionname
+					print 'Copying', self.dir_po + pofile, 'to', destination
+					try:
+						os.stat(destination)
+					except OSError, err:
+						print 'but', destination, 'is not there'
 				if not self.opt_dryrun:
 					shutil.copyfile(self.dir_po + pofile,  pofile)
 
+	def get_po_file_data(self, pofile):
+		if not self.gnome_release_data:
+			self.parse_gnome_release_data()
+		
+		if self.gnome_release_data['release'] != self.release:
+			print "Mismatched release data", self.release, self.gnome_release_data['release']
+		if self.gnome_release_data['language'] != self.language:
+			print "Mismatched language data", self.language, self.gnome_release_data['language']
+		for cat in self.gnome_release_data['categories'].keys():
+			if self.category != '' and cat != self.category:
+				continue
+			for mod in self.gnome_release_data['categories'][cat]:
+				if self.module != '' and mod != self.module:
+					continue
+				for resource in self.gnome_release_data['categories'][cat][mod]['resource']:
+					if pofile == resource['pofile'].rsplit('/')[-1]:
+						return resource['vcspath']
+		return None
+		
 	def is_empty(self):
 		for dir in [self.dir_po]:
 			dircontents = dircache.listdir(dir)
