@@ -163,12 +163,14 @@ class GNOMEI18nManage:
 	action_pocommit = False
 
 	opt_commit = False
+	opt_download = False
 	opt_dryrun = False
 	opt_init = False
 	opt_clean = False
 	opt_gitverbose = False
 	opt_verbose = False
-	opt_updatevcs = False
+	opt_vcsreset = False
+	opt_vcsupdate = False
 
 	def __init__(self, argv):
 		if not argv[1:]:
@@ -211,6 +213,78 @@ class GNOMEI18nManage:
 			self.process_poget(argv[2:])
 		elif self.action_pocommit:
 			self.process_pocommit(argv[2:])
+
+	def process_config(self, cmdargs):
+		if not cmdargs:
+			self.usage()
+			sys.exit(0)
+
+		try:
+		        opts, args = getopt.getopt(cmdargs, 'hl:r:su:v', [
+						'help', 'language=', 'languagefull=', 
+						'podir=', 'release=', 'status', 
+						'vcsdir=', 'verbose', 'username=' ])
+		except getopt.GetoptError, err:
+			print 'Error', err
+        		self.usage()
+        		sys.exit(0)
+
+		for o, a in opts:
+	        	if o in ('-h', '--help'):
+       	  		     	self.usage()
+        		     	sys.exit()
+        		if o in ('-l', '--language'):
+        			self.language = a
+        		if o in ('--languagefull'):
+                		self.languagefull = a
+			if o in ('--podir'):
+			 	self.dir_po = a
+			if o in ('-r', '--release'):
+			 	self.release = a
+     			if o in ('-s', '--status'):
+				self.opt_status = True
+        		if o in ('-u', '--username'):
+        			self.username = a
+        		if o in ('--vcsdir'):
+        			self.dir_vcs = a
+        		if o in ('-v', '--verbose'):
+        			self.opt_verbose = True
+
+		if not os.path.exists(self.file_CONFIG):
+			if self.opt_verbose:
+				print 'Could not find file', self.file_CONFIG
+				print 'Creating new configuration file...'
+
+		if self.language == '' or self.languagefull == '' or self.release == '' or \
+		   self.username == '' or self.dir_po == '' or self.dir_vcs == '':
+			print 'Error: Required parameter(s) missing for configuration'
+			print 'When using the "config" action for the first time, please specify all of the'
+			print 'following.'
+			print ' 1. --language LL, language (ISO 639), i.e. en_GB, el, fr, es'
+			print ' 2. --languagefull LANGUAGE, i.e. "British English", Greek, French, Spanish'
+			print ' 3. --release REL, GNOME release, i.e. gnome-2-26, gnome-2-28'
+			print ' 4. --username USER, username (your git username, or "anonymous" for anonymous clones'
+			print ' 5. --vcsdir VCSDIR, full path to where the repositories shall reside in'
+			print ' 6. --podir PODIR, full path to directoty with PO files for processing'
+			print
+			print 'Run this script without parameters for more help.'
+			print 'Exiting...'
+			sys.exit(-1)
+			print
+			print 'Run this script without parameters for more help.'
+			print 'Exiting...'
+			sys.exit(-1)
+
+		for dir in [self.dir_po, self.dir_vcs]:
+			if not os.path.exists(dir):
+				print 'Directory', dir, 'does not exist.'
+				print 'Please create it and try again.'
+				print 'Exiting...'
+				sys.exit(-1)
+
+		self.writeconfig()
+		if self.opt_verbose:
+			print 'Use "config --status" to view the current configuration settings.'
 
 	def process_status(self, cmdargs):
 		self.show_status()
@@ -305,10 +379,10 @@ class GNOMEI18nManage:
 	def process_vcsmanage(self, cmdargs):
 		try:
 		        opts, args = getopt.getopt(cmdargs, 'ac:dhl:qr:st:u:', ['category=', 'clean', 
-						'commit', 'dryrun', 'dry-run', 
+						'commit', 'download', 'dryrun', 'dry-run', 
 						'help', 'module=',
-						'release=', 'gitverbose', 'transtype=', 
-						'vcsdir=', 'verbose', 'username=', 'update-vcs' ])
+						'reset', 'gitverbose', 'transtype=', 
+						'verbose', 'username=', 'update-vcs' ])
 		except getopt.GetoptError, err:
 			print 'Error', err
         		self.usage()
@@ -318,15 +392,19 @@ class GNOMEI18nManage:
         			self.opt_clean = True
         		if o in ('-c', '--category'):
         	 		self.category = a
+        		if o in ('--download'):
+        	 		self.opt_download = True
         		if o in ('--dryrun', '--dry-run'):
         			self.opt_dryrun = True
+			if o in ('--gitverbose'):
+				self.opt_gitverbose = True
 	        	if o in ('-h', '--help'):
        	  		     	self.usage()
         		     	sys.exit()
         		if o in ('-m', '--module'):
         			self.module = a
-			if o in ('-r', '--release'):
-			 	self.release = a
+			if o in ('--reset'):
+			 	self.opt_vcsreset = True
      			if o in ('--transtype'):
 				if a in ['ui', 'domain']:
 					self.transtype = 'domain'
@@ -335,31 +413,71 @@ class GNOMEI18nManage:
 				else:
 					print 'ERROR: Invalid transtype, expected on of ui, doc, domain, document'
 					sys.exit(-4)
-        		if o in ('--vcsdir'):
-        			self.dir_vcs = a
         		if o in ('-v', '--verbose'):
         			self.opt_verbose = True
         		if o in ('-u', '--username'):
         			self.username = a
 			if o in ('--update-vcs'):
-				self.opt_updatevcs = True
+				self.opt_vcsupdate = True
 
-		if self.opt_commit:
-			if not self.language:
-				print 'Committing requires to set the language.'
-				print 'You can put here the full name, as in Greek'
-				print 'instead of the ISO 639 code, \'el\'.\nExiting...'
-				sys.exit(-11)
-			if self.is_empty():
-				print 'Directories are empty, cannot commit translation changes; exiting'
-				sys.exit(-3)
-			self.apply_translation_changes()
-			#self.do_commit()
+		if self.opt_vcsreset:
+			self.reset_hard(self.dir_vcs)
+
+		if self.opt_download:
+			self.parse_gnome_release_data()
+			release = self.gnome_release_data['release']
+			language = self.gnome_release_data['language']
+			print 'Release  :', release
+			print 'Language :', language
+			for cat in self.gnome_release_data['categories'].keys():
+				if self.category != '' and cat != self.category:
+					continue
+				print '    Category: %(cat)s' % { 'cat': cat }
+				for mod in self.gnome_release_data['categories'][cat]:
+					if self.module != '' and mod != self.module:
+						continue
+					print '        Module: %(br)22s, Branch: %(mod)s' % { 'br': mod, \
+						'mod': self.gnome_release_data['categories'][cat][mod]['branch'] }
+					for resource in self.gnome_release_data['categories'][cat][mod]['resource']:
+						if self.transtype: 
+							if resource['id'] not in self.transtype:
+								continue
+						if self.opt_verbose:
+							print '        ID:', resource['id'], 'Type:', resource['type']
+							print '          POFile:', resource['pofile']
+							print '          VCSPath:', resource['vcspath']
+						#vcspathtemp = resource['vcspath'].replace('/cgit/', '/git/')
+						#vcspath = vcspathtemp.replace('http://', 'ssh://' + self.username + '@')
+						vcspath = 'ssh://' + self.username + '@' + 'git.gnome.org/git/' + mod
+						branch = self.gnome_release_data['categories'][cat][mod]['branch']
+	
+						if self.opt_gitverbose:
+							CMD1 = 'cd ' + self.dir_vcs + ';' + 'git clone ' + vcspath
+						else:
+							CMD1 = 'cd ' + self.dir_vcs + ';' + 'git clone --quiet ' + vcspath
+
+						if self.opt_dryrun and self.opt_verbose:
+							print '            CMD:', CMD1
+						elif not self.opt_dryrun:
+							if os.path.exists(self.dir_vcs + mod):
+								print 'Cached repository for', mod, 'exists. Skipping cloning...'
+							else:
+								print 'Retrieving module', mod, '...',
+								if self.opt_verbose: 
+									print 
+        							sys.stdout.flush()
+								os.system(CMD1)
+								if not self.opt_verbose:
+									print '                                                                  \r',
+        							sys.stdout.flush()
+			if not self.opt_verbose:
+				print '                                                     '
+				pass
 
 		if self.opt_clean:
-			self.do_blank()
+			self.do_clean(self.dir_vcs)
 
-		if self.opt_updatevcs:
+		if self.opt_vcsupdate:
 			dircontents = dircache.listdir(self.dir_vcs)
 			dircontents = dircontents[:]
 			cmd_pull = 'git pull --rebase'
@@ -376,77 +494,27 @@ class GNOMEI18nManage:
 					os.system(cmd_changedir + ';' + cmd_pull)
 				counter = counter + 1
 
-	def process_config(self, cmdargs):
-		if not cmdargs:
-			self.usage()
-			sys.exit(0)
-
+	def process_pocommit(self, cmdargs):
 		try:
-		        opts, args = getopt.getopt(cmdargs, 'hl:r:su:v', [
-						'help', 'language=', 'languagefull=', 
-						'podir=', 'release=', 'status', 
-						'vcsdir=', 'verbose', 'username=' ])
+		        opts, args = getopt.getopt(cmdargs, 'ac:dhl:qr:st:u:', [ 'commit', 'dryrun', 'dry-run', 
+						'help', 'verbose' ])
 		except getopt.GetoptError, err:
 			print 'Error', err
         		self.usage()
         		sys.exit(0)
-
 		for o, a in opts:
+        		if o in ('--commit'):
+        	 		self.opt_commit = True
+        		if o in ('--dryrun', '--dry-run'):
+        			self.opt_dryrun = True
 	        	if o in ('-h', '--help'):
        	  		     	self.usage()
         		     	sys.exit()
-        		if o in ('-l', '--language'):
-        			self.language = a
-        		if o in ('--languagefull'):
-                		self.languagefull = a
-			if o in ('--podir'):
-			 	self.dir_po = a
-			if o in ('-r', '--release'):
-			 	self.release = a
-     			if o in ('-s', '--status'):
-				self.opt_status = True
-        		if o in ('-u', '--username'):
-        			self.username = a
-        		if o in ('--vcsdir'):
-        			self.dir_vcs = a
         		if o in ('-v', '--verbose'):
         			self.opt_verbose = True
 
-		if not os.path.exists(self.file_CONFIG):
-			if self.opt_verbose:
-				print 'Could not find file', self.file_CONFIG
-				print 'Creating new configuration file...'
-
-		if self.language == '' or self.languagefull == '' or self.release == '' or \
-		   self.username == '' or self.dir_po == '' or self.dir_vcs == '':
-			print 'Error: Required parameter(s) missing for configuration'
-			print 'When using the "config" action for the first time, please specify all of the'
-			print 'following.'
-			print ' 1. --language LL, language (ISO 639), i.e. en_GB, el, fr, es'
-			print ' 2. --languagefull LANGUAGE, i.e. "British English", Greek, French, Spanish'
-			print ' 3. --release REL, GNOME release, i.e. gnome-2-26, gnome-2-28'
-			print ' 4. --username USER, username (your git username, or "anonymous" for anonymous clones'
-			print ' 5. --vcsdir VCSDIR, full path to where the repositories shall reside in'
-			print ' 6. --podir PODIR, full path to directoty with PO files for processing'
-			print
-			print 'Run this script without parameters for more help.'
-			print 'Exiting...'
-			sys.exit(-1)
-			print
-			print 'Run this script without parameters for more help.'
-			print 'Exiting...'
-			sys.exit(-1)
-
-		for dir in [self.dir_po, self.dir_vcs]:
-			if not os.path.exists(dir):
-				print 'Directory', dir, 'does not exist.'
-				print 'Please create it and try again.'
-				print 'Exiting...'
-				sys.exit(-1)
-
-		self.writeconfig()
-		if self.opt_verbose:
-			print 'Use "config --status" to view the current configuration settings.'
+		if self.opt_commit:
+			self.apply_translation_changes()
 
         def show_status(self):
 		print 'Language: %(langfull)s - [%(lang)s]\tRelease: %(rel)s\tUsername: %(u)s' % \
@@ -487,37 +555,32 @@ class GNOMEI18nManage:
 		vcsdircontents = vcsdircontents[:]
 		podircontents = dircache.listdir(self.dir_po)
 		podircontents = podircontents[:]
+		try:
+			podircontents.remove(self.file_START)
+		except:
+			pass
 		start_time = os.stat(self.dir_po + self.file_START).st_mtime
 		for pofile in podircontents:
+			fileparts = pofile.split('.')
+			if fileparts[0][-5:] != '-help':
+				modulename = fileparts[0]
+				translationtype = '/po/'
+			else:
+				modulename = fileparts[0][:-5]
+				translationtype = '/help/' + self.language + '/'
+			branchname = fileparts[1]
+			languagename = fileparts[2]
+			extensionname = fileparts[3]
+			if self.language != languagename:
+				print 'Internal error: Language in config does not match language in PO files.'
+				print 'Exiting...'
+				sys.exit(-11)
 			if start_time < os.stat(self.dir_po + pofile).st_mtime:
-				try:
-					print "Stating", pofile
-					os.stat( self.dir_po + pofile)
-				except OSError, err:
-					print 'You do not have an initial translation for', pofile
-					print ' Please perform the commit manually. We welcome patches'
-					print ' to implement automatic addition of new translations.'
-					continue
 				if self.opt_verbose:
-					print 'Copying', self.dir_po + pofile, 'to', self.dir_vcs +  pofile
+					print 'Copying', self.dir_po + pofile, 'to', self.dir_vcs + \
+						modulename + translationtype + languagename + '.' + extensionname
 				if not self.opt_dryrun:
 					shutil.copyfile(self.dir_po + pofile,  pofile)
-
-	def do_commit(self):
-		vcsdircontents = dircache.listdir(self.dir_vcs)
-		vcsdircontents = vcsdircontents[:]
-		for vcsdir in vcsdircontents:
-			# We commit irrespective of any changed files; if files are not changed, 
-			# no harm is done.
-			if self.opt_verbose:
-				print 'Committing in', self.dir_vcs + vcsdir, 'language:', self.language
-			cmd_commit = 'svn commit -m ' + '"Updated ' + self.language + ' translation"'
-			cmd_changedir = 'chdir ' + self.dir_vcs + vcsdir
-			if self.opt_dryrun:
-				print cmd_changedir + ';' + cmd_commit
-			else:
-				pass
-				#os.system(cmd_changedir + ';' + cmd_commit)
 
 	def is_empty(self):
 		for dir in [self.dir_po]:
@@ -527,22 +590,40 @@ class GNOMEI18nManage:
 				return False
 		return True
 
-	def do_blank(self):
-		for dir in [self.dir_po]:
-			dircontents = dircache.listdir(dir)
-			dircontents = dircontents[:]
-			if dircontents:
-				for item in dircontents:
-					if os.path.isdir(dir + item):
-						if self.opt_verbose:
-							print 'Removing directory tree', dir + item
-						if not self.opt_dryrun:
-							shutil.rmtree(dir + item)
+	def reset_hard(self, dir):
+		dircontents = dircache.listdir(dir)
+		dircontents = dircontents[:]
+		if dircontents:
+			for item in dircontents:
+				if os.path.isdir(dir + item):
+					CMD = 'cd ' + dir + item + '; git reset --hard origin/master'
+					if self.opt_verbose:
+						print CMD
+					if not self.opt_dryrun:
+						print 'Reseting hard', dir + item
+						os.system(CMD)
 					else:
-						if self.opt_verbose:
-							print 'Removing file', dir + item
-						if not self.opt_dryrun:
-							os.remove(dir + item)
+						print 'Would reset hard', dir + item
+
+	def do_clean(self, dir):
+		dircontents = dircache.listdir(dir)
+		dircontents = dircontents[:]
+		if dircontents:
+			for item in dircontents:
+				if os.path.isdir(dir + item):
+					if not self.opt_dryrun:
+						print 'Removing directory tree', dir + item
+						shutil.rmtree(dir + item)
+					else:
+						print 'Would remove directory tree', dir + item
+
+				else:
+					if not self.opt_dryrun:
+						print 'Removing file', dir + item
+						os.remove(dir + item)
+					else:
+						print 'Would remove file', dir + item
+						
 
 	def init(self):	
 		if self.opt_dryrun:
@@ -562,80 +643,6 @@ class GNOMEI18nManage:
 
 		self.gnome_release_data = self.parse_gnome_xml_file(self.xmlfilename)
 
-	def process_stats(self, action):	
-		self.parse_gnome_release_data()
-		release = self.gnome_release_data['release']
-		language = self.gnome_release_data['language']
-		print 'Release  :', release
-		print 'Language :', language
-		for cat in self.gnome_release_data['categories'].keys():
-			if self.category != '' and cat != self.category:
-				continue
-			print '    Category: %(cat)s' % { 'cat': cat }
-			for mod in self.gnome_release_data['categories'][cat]:
-				if self.module != '' and mod != self.module:
-					continue
-				print '        Module: %(br)22s, Branch: %(mod)s' % { 'br': mod, \
-					'mod': self.gnome_release_data['categories'][cat][mod]['branch'] }
-				for resource in self.gnome_release_data['categories'][cat][mod]['resource']:
-					if self.transtype: 
-						if resource['id'] not in self.transtype:
-							continue
-					if self.opt_verbose:
-						print '        ID:', resource['id'], 'Type:', resource['type']
-						print '          POFile:', resource['pofile']
-						print '          VCSPath:', resource['vcspath']
-					pofilename = resource['pofile'].rsplit('/')[2]
-					#vcspathtemp = resource['vcspath'].replace('/cgit/', '/git/')
-					#vcspath = vcspathtemp.replace('http://', 'ssh://' + self.username + '@')
-					vcspath = 'ssh://' + self.username + '@' + 'git.gnome.org/git/' + mod
-					branch = self.gnome_release_data['categories'][cat][mod]['branch']
-					alignment = ''
-					if resource['type'] == 'help' or resource['id'] == 'document':
-						alignment = 'help/el/'
-					else:
-						alignment = 'po/'
-					#print '\t\t\t\tSetting alignment to ', alignment
-
-					if self.opt_gitverbose:
-						CMD1 = 'cd ' + self.dir_vcs + ';' + 'git clone ' + vcspath
-					else:
-						CMD1 = 'cd ' + self.dir_vcs + ';' + 'git clone --quiet ' + vcspath
-
-					if pofilename[-4:] == '.pot':
-						pofilename = pofilename[:-1]
-
-					if self.opt_verbose:
-						CMD2 = 'wget http://l10n.gnome.org' + resource['pofile'] + \
-							' -O ' + self.dir_po + pofilename
-					else:
-						CMD2 = 'wget --quiet http://l10n.gnome.org' + resource['pofile'] + \
-							' -O ' + self.dir_po + pofilename
-
-					if self.opt_dryrun and self.opt_verbose:
-						print '            CMD:', CMD1
-						print '            CMD:', CMD2
-						print '            CMD:', CMD3
-					elif not self.opt_dryrun:
-						if self.opt_verbose:
-							print '\t\tTouching current time at', self.dir_po + self.file_START
-						os.system('touch ' + self.dir_po + self.file_START)
-						if os.path.exists(self.dir_vcs + mod):
-							print 'Cached repository for', mod, 'exists. Skipping cloning...'
-						else:
-							print 'Retrieving module', mod, '...',
-							if self.opt_verbose: 
-								print 
-        						sys.stdout.flush()
-							os.system(CMD1)
-							if not self.opt_verbose:
-								print '                                                                  \r',
-        						sys.stdout.flush()
-						os.system(CMD2)
-						os.system(CMD3)
-		if not self.opt_verbose:
-			print '                                                     '
-	
 	def parse_gnome_xml_file(self, filename):
 		try:
 			xmlfile = open(filename, 'r')
