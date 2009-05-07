@@ -170,6 +170,7 @@ class GNOMEI18nManage:
 	opt_clean = False
 	opt_gitverbose = False
 	opt_nocheckout = False
+	opt_trim = False
 	opt_verbose = False
 	opt_vcsreset = False
 	opt_vcsupdate = False
@@ -382,8 +383,8 @@ class GNOMEI18nManage:
 		try:
 		        opts, args = getopt.getopt(cmdargs, 'ac:dhl:qr:st:u:', ['category=', 'clean', 
 						'commit', 'clone', 'dryrun', 'dry-run', 'eponymous',
-						'help', 'module=', 'no-checkout'
-						'reset', 'gitverbose', 'transtype=', 
+						'help', 'module=', 'no-checkout',
+						'reset', 'gitverbose', 'transtype=', 'trim',
 						'verbose', 'username=', 'update-vcs', 'updatevcs', 
 						'vcsupdate', 'vcs-update' ])
 		except getopt.GetoptError, err:
@@ -420,6 +421,8 @@ class GNOMEI18nManage:
 				else:
 					print 'ERROR: Invalid transtype, expected on of ui, doc, domain, document'
 					sys.exit(-4)
+        		if o in ('--trim'):
+        			self.opt_trim = True
         		if o in ('-v', '--verbose'):
         			self.opt_verbose = True
         		if o in ('-u', '--username'):
@@ -520,6 +523,18 @@ class GNOMEI18nManage:
 					os.system(cmd_changedir + ';' + cmd_remote_add)
 					os.system(cmd_changedir + ';' + cmd_remote_origin)
 					os.system(cmd_changedir + ';' + cmd_remote_merge)
+				counter = counter + 1
+
+		if self.opt_trim:
+			dircontents = dircache.listdir(self.dir_vcs)
+			dircontents = dircontents[:]
+			counter = 1
+			for vcsdir in dircontents:
+				print 'Erasing working copy for', self.dir_vcs + vcsdir, ' -- ', counter, 'of', len(dircontents)
+				if self.opt_dryrun:
+					print 'rm -fr ' + self.dir_vcs + vcsdir + '/*'
+				else:
+					os.system('rm -fr ' + self.dir_vcs + vcsdir + '/*')
 				counter = counter + 1
 
 		if self.opt_vcsupdate:
@@ -759,6 +774,7 @@ class GNOMEI18nManage:
 		--eponymous 	    make repositories eponymous (sets to new 'username')
 	 -r     --reset             reset each repository (git reset --hard origin/master)
 	        --gitquiet          add --quiet to GIT cloning
+		--trim		    erases the working copy
 	        --update-vcs        update local repositories (runs git pull --rebase on each)
 
  poget       Retrieve a selection of PO files (Module filtering applies)
