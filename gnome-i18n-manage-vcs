@@ -163,7 +163,7 @@ class GNOMEI18nManage:
 	action_pocommit = False
 
 	opt_commit = False
-	opt_download = False
+	opt_clone = False
 	opt_dryrun = False
 	opt_init = False
 	opt_clean = False
@@ -379,7 +379,7 @@ class GNOMEI18nManage:
 	def process_vcsmanage(self, cmdargs):
 		try:
 		        opts, args = getopt.getopt(cmdargs, 'ac:dhl:qr:st:u:', ['category=', 'clean', 
-						'commit', 'download', 'dryrun', 'dry-run', 
+						'commit', 'clone', 'dryrun', 'dry-run', 
 						'help', 'module=',
 						'reset', 'gitverbose', 'transtype=', 
 						'verbose', 'username=', 'update-vcs' ])
@@ -392,8 +392,8 @@ class GNOMEI18nManage:
         			self.opt_clean = True
         		if o in ('-c', '--category'):
         	 		self.category = a
-        		if o in ('--download'):
-        	 		self.opt_download = True
+        		if o in ('--clone'):
+        	 		self.opt_clone = True
         		if o in ('--dryrun', '--dry-run'):
         			self.opt_dryrun = True
 			if o in ('--gitverbose'):
@@ -423,7 +423,7 @@ class GNOMEI18nManage:
 		if self.opt_vcsreset:
 			self.reset_hard(self.dir_vcs)
 
-		if self.opt_download:
+		if self.opt_clone:
 			self.parse_gnome_release_data()
 			release = self.gnome_release_data['release']
 			language = self.gnome_release_data['language']
@@ -446,9 +446,10 @@ class GNOMEI18nManage:
 							print '        ID:', resource['id'], 'Type:', resource['type']
 							print '          POFile:', resource['pofile']
 							print '          VCSPath:', resource['vcspath']
-						#vcspathtemp = resource['vcspath'].replace('/cgit/', '/git/')
-						#vcspath = vcspathtemp.replace('http://', 'ssh://' + self.username + '@')
-						vcspath = 'ssh://' + self.username + '@' + 'git.gnome.org/git/' + mod
+						if self.username == 'anonymous':
+							vcspath = 'git://git.gnome.org/' + mod
+						else:
+							vcspath = 'ssh://' + self.username + '@' + 'git.gnome.org/git/' + mod
 						branch = self.gnome_release_data['categories'][cat][mod]['branch']
 	
 						if self.opt_gitverbose:
@@ -704,6 +705,7 @@ class GNOMEI18nManage:
 
  vcsmanage   Local repository management (Module filtering applies)
 		--clean             clears up the downloaded files (USE WITH CARE, WIPES REPOSITORIES)
+		--clone		    clone repositories
 	 -r     --reset             Reset each repository (git reset --hard origin/master)
 	        --gitquiet          Add --quiet to GIT cloning
 	        --update-vcs        update local repositories (runs git pull --rebase on each)
