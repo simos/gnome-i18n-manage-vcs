@@ -472,7 +472,8 @@ class GNOMEI18nManage:
 							print '            CMD:', CMD1
 						elif not self.opt_dryrun:
 							if os.path.exists(self.dir_vcs + mod):
-								print 'Cached repository for', mod, 'exists. Skipping cloning...'
+								pass
+								#print 'Cached repository for', mod, 'exists. Skipping cloning...'
 							else:
 								print 'Retrieving module', mod, '...',
 								if self.opt_verbose: 
@@ -480,10 +481,10 @@ class GNOMEI18nManage:
         							sys.stdout.flush()
 								os.system(CMD1)
 								if not self.opt_verbose:
-									print '                                                                  \r',
+									print ' ' * 80 + '\r',
         							sys.stdout.flush()
 			if not self.opt_verbose:
-				print '                                                     '
+				print ' ' * 80 
 				pass
 
 		if self.opt_clean:
