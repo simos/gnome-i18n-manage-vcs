@@ -168,6 +168,7 @@ class GNOMEI18nManage:
 	opt_init = False
 	opt_clean = False
 	opt_gitverbose = False
+	opt_nocheckout = False
 	opt_verbose = False
 	opt_vcsreset = False
 	opt_vcsupdate = False
@@ -380,9 +381,10 @@ class GNOMEI18nManage:
 		try:
 		        opts, args = getopt.getopt(cmdargs, 'ac:dhl:qr:st:u:', ['category=', 'clean', 
 						'commit', 'clone', 'dryrun', 'dry-run', 
-						'help', 'module=',
+						'help', 'module=', 'no-checkout'
 						'reset', 'gitverbose', 'transtype=', 
-						'verbose', 'username=', 'update-vcs' ])
+						'verbose', 'username=', 'update-vcs', 'updatevcs', 
+						'vcsupdate', 'vcs-update' ])
 		except getopt.GetoptError, err:
 			print 'Error', err
         		self.usage()
@@ -403,6 +405,8 @@ class GNOMEI18nManage:
         		     	sys.exit()
         		if o in ('-m', '--module'):
         			self.module = a
+        		if o in ('--no-checkout'):
+        			self.opt_nocheckout = True
 			if o in ('--reset'):
 			 	self.opt_vcsreset = True
      			if o in ('--transtype'):
@@ -417,7 +421,7 @@ class GNOMEI18nManage:
         			self.opt_verbose = True
         		if o in ('-u', '--username'):
         			self.username = a
-			if o in ('--update-vcs'):
+			if o in ('--update-vcs', '--updatevcs', '--vcs-update', '--vcsupdate'):
 				self.opt_vcsupdate = True
 
 		if self.opt_vcsreset:
@@ -452,10 +456,17 @@ class GNOMEI18nManage:
 							vcspath = 'ssh://' + self.username + '@' + 'git.gnome.org/git/' + mod
 						branch = self.gnome_release_data['categories'][cat][mod]['branch']
 	
+						CMD1 = 'cd ' + self.dir_vcs + ';'
 						if self.opt_gitverbose:
-							CMD1 = 'cd ' + self.dir_vcs + ';' + 'git clone ' + vcspath
+							if self.opt_nocheckout:
+								CMD1 = CMD1 + 'git clone --no-checkout ' + vcspath
+							else:
+								CMD1 = CMD1 + 'git clone ' + vcspath
 						else:
-							CMD1 = 'cd ' + self.dir_vcs + ';' + 'git clone --quiet ' + vcspath
+							if self.opt_nocheckout:
+								CMD1 = CMD1 + 'git clone --no-checkout --quiet ' + vcspath
+							else:
+								CMD1 = CMD1 + 'git clone --quiet ' + vcspath
 
 						if self.opt_dryrun and self.opt_verbose:
 							print '            CMD:', CMD1
@@ -543,8 +554,14 @@ class GNOMEI18nManage:
 			print 'No PO directory has been specified. Please specify'
 			print 'such a directory with --config --podir <path to dir>.'
 			print 'Exiting...'
-		start_time = os.stat(self.dir_po + self.file_START).st_mtime
-		print 'Timestamp file START has date/time:',  datetime.ctime(datetime.fromtimestamp(start_time))
+		try:
+			start_time = os.stat(self.dir_po + self.file_START).st_mtime
+		except OSError:
+			start_time = 0
+		if start_time:
+			print 'Timestamp file START has date/time:',  datetime.ctime(datetime.fromtimestamp(start_time))
+		else:
+			print 'No START file exists'
 		print 'PO files that are newer than timestamp:'
 		for pofile in podircontents:
 			potime = os.stat(self.dir_po + pofile).st_mtime
