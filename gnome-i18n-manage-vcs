@@ -165,6 +165,7 @@ class GNOMEI18nManage:
 	opt_commit = False
 	opt_clone = False
 	opt_dryrun = False
+	opt_eponymous = False
 	opt_init = False
 	opt_clean = False
 	opt_gitverbose = False
@@ -380,7 +381,7 @@ class GNOMEI18nManage:
 	def process_vcsmanage(self, cmdargs):
 		try:
 		        opts, args = getopt.getopt(cmdargs, 'ac:dhl:qr:st:u:', ['category=', 'clean', 
-						'commit', 'clone', 'dryrun', 'dry-run', 
+						'commit', 'clone', 'dryrun', 'dry-run', 'eponymous',
 						'help', 'module=', 'no-checkout'
 						'reset', 'gitverbose', 'transtype=', 
 						'verbose', 'username=', 'update-vcs', 'updatevcs', 
@@ -398,6 +399,8 @@ class GNOMEI18nManage:
         	 		self.opt_clone = True
         		if o in ('--dryrun', '--dry-run'):
         			self.opt_dryrun = True
+        		if o in ('--eponymous'):
+        			self.opt_eponymous = True
 			if o in ('--gitverbose'):
 				self.opt_gitverbose = True
 	        	if o in ('-h', '--help'):
@@ -489,6 +492,35 @@ class GNOMEI18nManage:
 
 		if self.opt_clean:
 			self.do_clean(self.dir_vcs)
+
+		if self.opt_eponymous:
+			dircontents = dircache.listdir(self.dir_vcs)
+			dircontents = dircontents[:]
+			if self.username == 'anonymous':
+				print 'In order to use --eponymous, you need to set the username to'
+				print 'something other than "anonymous".'
+				print 'Exiting...'
+				sys.exit(-1)
+			cmd_remote_rm = 'git remote rm origin'
+			cmd_remote_add = 'git remote add origin -m master -f ssh://' + self.username \
+					+ '@git.gnome.org/git/' + self.module + '/'
+			cmd_remote_origin = 'git config branch.master.remote origin'
+			cmd_remote_merge = 'git config branch.master.merge refs/heads/master'
+			counter = 1
+			for vcsdir in dircontents:
+				print 'Converting', self.dir_vcs + vcsdir, ' -- ', counter, 'of', len(dircontents)
+				cmd_changedir = 'chdir ' + self.dir_vcs + vcsdir
+				if self.opt_dryrun:
+					print cmd_changedir + ';' + cmd_rm
+					print cmd_changedir + ';' + cmd_add
+					print cmd_changedir + ';' + cmd_origin
+					print cmd_changedir + ';' + cmd_merge
+				else:
+					os.system(cmd_changedir + ';' + cmd_remote_rm)
+					os.system(cmd_changedir + ';' + cmd_remote_add)
+					os.system(cmd_changedir + ';' + cmd_remote_origin)
+					os.system(cmd_changedir + ';' + cmd_remote_merge)
+				counter = counter + 1
 
 		if self.opt_vcsupdate:
 			dircontents = dircache.listdir(self.dir_vcs)
@@ -724,8 +756,9 @@ class GNOMEI18nManage:
  vcsmanage   Local repository management (Module filtering applies)
 		--clean             clears up the downloaded files (USE WITH CARE, WIPES REPOSITORIES)
 		--clone		    clone repositories
-	 -r     --reset             Reset each repository (git reset --hard origin/master)
-	        --gitquiet          Add --quiet to GIT cloning
+		--eponymous 	    make repositories eponymous (sets to new 'username')
+	 -r     --reset             reset each repository (git reset --hard origin/master)
+	        --gitquiet          add --quiet to GIT cloning
 	        --update-vcs        update local repositories (runs git pull --rebase on each)
 
  poget       Retrieve a selection of PO files (Module filtering applies)
