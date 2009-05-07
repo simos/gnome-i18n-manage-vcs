@@ -510,19 +510,23 @@ class GNOMEI18nManage:
 			counter = 1
 			for vcsdir in dircontents:
 				print 'Converting', self.dir_vcs + vcsdir, ' -- ', counter, 'of', len(dircontents)
-				cmd_changedir = 'chdir ' + self.dir_vcs + vcsdir
+				cmd_changedir = 'cd ' + self.dir_vcs + vcsdir
 				cmd_remote_add = 'git remote add origin -m master -f ssh://' + self.username \
 					+ '@git.gnome.org/git/' + vcsdir + '/'
 				if self.opt_dryrun:
-					print cmd_changedir + ';' + cmd_remote_rm
-					print cmd_changedir + ';' + cmd_remote_add
-					print cmd_changedir + ';' + cmd_remote_origin
-					print cmd_changedir + ';' + cmd_remote_merge
+					cmd_changedir + ';' + cmd_remote_rm
+					cmd_changedir + ';' + cmd_remote_add
+					cmd_changedir + ';' + cmd_remote_origin
+					cmd_changedir + ';' + cmd_remote_merge
 				else:
-					os.system(cmd_changedir + ';' + cmd_remote_rm)
-					os.system(cmd_changedir + ';' + cmd_remote_add)
-					os.system(cmd_changedir + ';' + cmd_remote_origin)
-					os.system(cmd_changedir + ';' + cmd_remote_merge)
+					try: 
+						print os.system(cmd_changedir + ';' + cmd_remote_rm)
+						print os.system(cmd_changedir + ';' + cmd_remote_add)
+						print os.system(cmd_changedir + ';' + cmd_remote_origin)
+						print os.system(cmd_changedir + ';' + cmd_remote_merge)
+					except OSError, err:
+						print err
+						sys.exit(-1)
 				counter = counter + 1
 
 		if self.opt_trim:
@@ -547,7 +551,7 @@ class GNOMEI18nManage:
 				# no harm is done.
 				###if self.opt_verbose:
 				print 'Pulling for', self.dir_vcs + vcsdir, ' -- ', counter, 'of', len(dircontents)
-				cmd_changedir = 'chdir ' + self.dir_vcs + vcsdir
+				cmd_changedir = 'cd ' + self.dir_vcs + vcsdir
 				if self.opt_dryrun:
 					print cmd_changedir + ';' + cmd_pull
 				else:
