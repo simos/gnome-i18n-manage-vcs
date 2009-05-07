@@ -505,19 +505,19 @@ class GNOMEI18nManage:
 				print 'Exiting...'
 				sys.exit(-1)
 			cmd_remote_rm = 'git remote rm origin'
-			cmd_remote_add = 'git remote add origin -m master -f ssh://' + self.username \
-					+ '@git.gnome.org/git/' + self.module + '/'
 			cmd_remote_origin = 'git config branch.master.remote origin'
 			cmd_remote_merge = 'git config branch.master.merge refs/heads/master'
 			counter = 1
 			for vcsdir in dircontents:
 				print 'Converting', self.dir_vcs + vcsdir, ' -- ', counter, 'of', len(dircontents)
 				cmd_changedir = 'chdir ' + self.dir_vcs + vcsdir
+				cmd_remote_add = 'git remote add origin -m master -f ssh://' + self.username \
+					+ '@git.gnome.org/git/' + vcsdir + '/'
 				if self.opt_dryrun:
-					print cmd_changedir + ';' + cmd_rm
-					print cmd_changedir + ';' + cmd_add
-					print cmd_changedir + ';' + cmd_origin
-					print cmd_changedir + ';' + cmd_merge
+					print cmd_changedir + ';' + cmd_remote_rm
+					print cmd_changedir + ';' + cmd_remote_add
+					print cmd_changedir + ';' + cmd_remote_origin
+					print cmd_changedir + ';' + cmd_remote_merge
 				else:
 					os.system(cmd_changedir + ';' + cmd_remote_rm)
 					os.system(cmd_changedir + ';' + cmd_remote_add)
