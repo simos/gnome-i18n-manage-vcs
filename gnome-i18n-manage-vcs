@@ -731,7 +731,7 @@ class GNOMEI18nManage:
 			self.process_stats('execute')
 
 	def parse_gnome_release_data(self):
-		self.xmlurl = 'http://l10n.gnome.org/languages/' + self.language + '/gnome-2-26/xml'
+		self.xmlurl = 'http://l10n.gnome.org/languages/' + self.language + '/' + self.release + '/xml'
 		self.xmlfilename = self.download_file(self.xmlurl)
 
 		# An error page is about 2.5KB, a proper XML file is circa 50KB.
