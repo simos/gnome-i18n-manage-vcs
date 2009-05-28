@@ -36,6 +36,11 @@ except ImportError, err:
 
 PROGNAME='gnome-i18n-manage-vcs'
 
+PACKAGE_NAME    = 'GNOME I18n Manage VCS'
+PACKAGE_VERSION = '0.9'
+PACKAGE_AUTHORS = ['Simos Xenitellis <simos@gnome.org>']
+PACKAGE_COPYRIGHT = 'Copyright 2009 Simos Xenitellis'
+
 class GNOMEI18nTarget:
 	def __init__(self):
 		self.message_states = ['translated', 'untranslated', 'fuzzy', 'docfuzzy', 'docuntranslated', 'doctranslated']
@@ -481,7 +486,7 @@ class GNOMEI18nManage:
 								pass
 								#print 'Cached repository for', mod, 'exists. Skipping cloning...'
 							else:
-								print 'Retrieving module', mod, '...',
+								print 'Retrieving module', mod, '...'
 								if self.opt_verbose: 
 									print 
         							sys.stdout.flush()
@@ -776,8 +781,8 @@ class GNOMEI18nManage:
 		--clean             clears up the downloaded files (USE WITH CARE, WIPES REPOSITORIES)
 		--clone		    clone repositories
 		--eponymous 	    make repositories eponymous (sets to new 'username')
+		--gitverbose 	    show progress when cloning (git 1.5 ignores this option).
 	 -r     --reset             reset each repository (git reset --hard origin/master)
-	        --gitquiet          add --quiet to GIT cloning
 		--trim		    erases the working copy
 	        --update-vcs        update local repositories (runs git pull --rebase on each)
 
@@ -796,7 +801,6 @@ class GNOMEI18nManage:
  Common options
 	 -d     --dry-run           do not really perform the action
 	 -h     --help              this craft
-	 -q     --quiet             be quiet (even less output)
 	 -v     --verbose           show verbose output
 """
 
