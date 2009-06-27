@@ -275,6 +275,9 @@ class GNOMEI18nManage:
 			print ' 5. --vcsdir VCSDIR, full path to where the repositories shall reside in'
 			print ' 6. --podir PODIR, full path to directoty with PO files for processing'
 			print
+			print 'Received: language =', self.language, '- languagefull =', self.languagefull, '- release =', self.release
+			print 'Received: username =', self.username, '- vcsdir =', self.dir_vcs, '- podir =', self.dir_po
+			print
 			print 'Run this script without parameters for more help.'
 			print 'Exiting...'
 			sys.exit(-1)
