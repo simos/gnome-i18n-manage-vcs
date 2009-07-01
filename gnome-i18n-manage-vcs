@@ -26,6 +26,8 @@ import urllib       # urllib.urlretrieve()
 import ConfigParser # ConfigParser()
 from datetime import datetime   # datetime()
 
+from xdg.BaseDirectory import *
+
 try:
     from lxml import etree  # etree.XMLParser(), etree.XML()
 except ImportError, err:
@@ -86,50 +88,50 @@ class GNOMEI18nTarget:
             self.push_flag(tag)
 
         def end(self, tag):
-        if tag not in self.message_states:
-            if tag == 'domain':
-                self.resources.append({'id': tag, 'type': self.domain, 
-                    'pofile': self.pofile, 'vcspath' : self.vcspath }) 
-                self.domain = self.pofile = self.vcspath = None
-            elif tag == 'document':
-                self.resources.append({'id': tag, 'type': self.document, 
-                    'pofile': self.pofile, 'vcspath' : self.vcspath }) 
-                self.document = self.pofile = self.vcspath = None
-            elif tag == 'module':
-                self.module[self.module_id] = { 'branch': self.module_branch, 'resource': self.resources }
-                self.module_id = self.module_branch = None
-                self.resources = []
-            elif tag == 'category':
-                self.category[self.category_id] = self.module
-                self.module = {}
-                self.category_id = None
-            elif tag == 'stats':
-                self.stats = { 'language': self.stats_language, 'release': self.stats_release, 
-                        'categories': self.category } 
-                self.category = {}
-                self.stats_release = self.stats_language = None
-            elif tag not in ['pofile', 'svnpath']:
-                # Should not be reached
-                        #print self.tabs[:self.level], ('end %s' % tag)
-                pass
-            self.pop_flag(tag)
+            if tag not in self.message_states:
+                if tag == 'domain':
+                    self.resources.append({'id': tag, 'type': self.domain, 
+                        'pofile': self.pofile, 'vcspath' : self.vcspath }) 
+                    self.domain = self.pofile = self.vcspath = None
+                elif tag == 'document':
+                    self.resources.append({'id': tag, 'type': self.document, 
+                        'pofile': self.pofile, 'vcspath' : self.vcspath }) 
+                    self.document = self.pofile = self.vcspath = None
+                elif tag == 'module':
+                    self.module[self.module_id] = { 'branch': self.module_branch, 'resource': self.resources }
+                    self.module_id = self.module_branch = None
+                    self.resources = []
+                elif tag == 'category':
+                    self.category[self.category_id] = self.module
+                    self.module = {}
+                    self.category_id = None
+                elif tag == 'stats':
+                    self.stats = { 'language': self.stats_language, 'release': self.stats_release, 
+                            'categories': self.category } 
+                    self.category = {}
+                    self.stats_release = self.stats_language = None
+                elif tag not in ['pofile', 'svnpath']:
+                    # Should not be reached
+                            #print self.tabs[:self.level], ('end %s' % tag)
+                    pass
+                self.pop_flag(tag)
 
         def data(self, data):
             if not data.isspace() and not data.isdigit():
-            if self.flags[-1] == 'pofile':
-                self.pofile = data
-            elif self.flags[-1] == 'svnpath':
-                self.vcspath = data
-            else:
-                # Should not be reached
-                        #print self.tabs[:self.level], ('data %r' % data)
-                pass
+                if self.flags[-1] == 'pofile':
+                    self.pofile = data
+                elif self.flags[-1] == 'svnpath':
+                    self.vcspath = data
+                else:
+                    # Should not be reached
+                            #print self.tabs[:self.level], ('data %r' % data)
+                    pass
 
-        def comment(self, text):
+    def comment(self, text):
         pass
 
-        def close(self):
-                return True
+    def close(self):
+        return True
 
     def push_flag(self, tag):
         self.flags.append(tag)
@@ -185,7 +187,17 @@ class GNOMEI18nManage:
             self.usage()
             sys.exit(0)
 
-        self.file_CONFIG = os.getenv('HOME') + '/' + '.gnomemanagevcsrc'
+        # Establish where the configuration file should be stored as per the
+        # XDG directories recommendation by the Freedesktop organization.
+        self.conf_dir = os.path.join(xdg_config_home, PROGNAME)
+        # Create the directory if it doesn't exist
+        if not os.path.isdir(self.conf_dir):
+            os.mkdir(self.conf_dir)
+
+        self.data_dir = os.path.join(xdg_data_home, PROGNAME)
+
+        # Configuration file
+        self.conf_file = os.path.join(self.conf_dir, '%s.conf' % PROGNAME)
 
         if argv[1] == 'config':
                     self.action_config = True
@@ -228,29 +240,29 @@ class GNOMEI18nManage:
             sys.exit(0)
 
         try:
-                opts, args = getopt.getopt(cmdargs, 'hl:r:su:v', [
-                        'help', 'language=', 'languagefull=', 
-                        'podir=', 'release=', 'status', 
-                        'vcsdir=', 'verbose', 'username=' ])
+            opts, args = getopt.getopt(cmdargs, 'hl:r:su:v', [
+                'help', 'language=', 'languagefull=', 
+                'podir=', 'release=', 'status', 
+                'vcsdir=', 'verbose', 'username=' ])
         except getopt.GetoptError, err:
-            print 'Error', err
-                self.usage()
-                sys.exit(0)
+            print 'Error: %s' % str(err)
+            self.usage()
+            sys.exit(0)
 
         for o, a in opts:
-                if o in ('-h', '--help'):
-                        self.usage()
-                        sys.exit()
-                if o in ('-l', '--language'):
-                    self.language = a
-                if o in ('--languagefull'):
-                        self.languagefull = a
+            if o in ('-h', '--help'):
+                self.usage()
+                sys.exit()
+            if o in ('-l', '--language'):
+                self.language = a
+            if o in ('--languagefull'):
+                    self.languagefull = a
             if o in ('--podir'):
                 self.dir_po = a
             if o in ('-r', '--release'):
                 self.release = a
                 if o in ('-s', '--status'):
-                self.opt_status = True
+                    self.opt_status = True
                 if o in ('-u', '--username'):
                     self.username = a
                 if o in ('--vcsdir'):
@@ -258,9 +270,9 @@ class GNOMEI18nManage:
                 if o in ('-v', '--verbose'):
                     self.opt_verbose = True
 
-        if not os.path.exists(self.file_CONFIG):
+        if not os.path.exists(self.conf_dir):
             if self.opt_verbose:
-                print 'Could not find file', self.file_CONFIG
+                print 'Could not find the configuration file: %s' % self.conf_dir
                 print 'Creating new configuration file...'
 
         if self.language == '' or self.languagefull == '' or self.release == '' or \
@@ -307,21 +319,21 @@ class GNOMEI18nManage:
                         'help', 'module=', 'transtype=', 'verbose' ])
         except getopt.GetoptError, err:
             print 'Error', err
-                self.usage()
-                sys.exit(0)
+            self.usage()
+            sys.exit(0)
         for o, a in opts:
-                if o in ('--clean'):
-                    self.opt_clean = True
-                if o in ('-c', '--category'):
-                    self.category = a
-                if o in ('--dryrun', '--dry-run'):
-                    self.opt_dryrun = True
-                if o in ('-h', '--help'):
-                        self.usage()
-                        sys.exit()
-                if o in ('-m', '--module'):
-                    self.module = a
-                if o in ('--transtype'):
+            if o in ('--clean'):
+                self.opt_clean = True
+            if o in ('-c', '--category'):
+                self.category = a
+            if o in ('--dryrun', '--dry-run'):
+                self.opt_dryrun = True
+            if o in ('-h', '--help'):
+                self.usage()
+                sys.exit()
+            if o in ('-m', '--module'):
+                self.module = a
+            if o in ('--transtype'):
                 if a in ['ui', 'domain']:
                     self.transtype = 'domain'
                 elif a in ['doc', 'document']:
@@ -329,8 +341,8 @@ class GNOMEI18nManage:
                 else:
                     print 'ERROR: Invalid transtype, expected on of ui, doc, domain, document'
                     sys.exit(-4)
-                if o in ('-v', '--verbose'):
-                    self.opt_verbose = True
+            if o in ('-v', '--verbose'):
+                self.opt_verbose = True
 
         if self.opt_clean:
             podircontents = dircache.listdir(self.dir_po)
@@ -397,31 +409,31 @@ class GNOMEI18nManage:
                         'vcsupdate', 'vcs-update' ])
         except getopt.GetoptError, err:
             print 'Error', err
-                self.usage()
-                sys.exit(0)
+            self.usage()
+            sys.exit(0)
         for o, a in opts:
-                if o in ('--clean'):
-                    self.opt_clean = True
-                if o in ('-c', '--category'):
-                    self.category = a
-                if o in ('--clone'):
-                    self.opt_clone = True
-                if o in ('--dryrun', '--dry-run'):
-                    self.opt_dryrun = True
-                if o in ('--eponymous'):
-                    self.opt_eponymous = True
+            if o in ('--clean'):
+                self.opt_clean = True
+            if o in ('-c', '--category'):
+                self.category = a
+            if o in ('--clone'):
+                self.opt_clone = True
+            if o in ('--dryrun', '--dry-run'):
+                self.opt_dryrun = True
+            if o in ('--eponymous'):
+                self.opt_eponymous = True
             if o in ('--gitverbose'):
                 self.opt_gitverbose = True
-                if o in ('-h', '--help'):
-                        self.usage()
-                        sys.exit()
-                if o in ('-m', '--module'):
-                    self.module = a
-                if o in ('--no-checkout'):
-                    self.opt_nocheckout = True
+            if o in ('-h', '--help'):
+                self.usage()
+                sys.exit()
+            if o in ('-m', '--module'):
+                self.module = a
+            if o in ('--no-checkout'):
+                self.opt_nocheckout = True
             if o in ('--reset'):
                 self.opt_vcsreset = True
-                if o in ('--transtype'):
+            if o in ('--transtype'):
                 if a in ['ui', 'domain']:
                     self.transtype = 'domain'
                 elif a in ['doc', 'document']:
@@ -572,23 +584,23 @@ class GNOMEI18nManage:
                         'help', 'verbose' ])
         except getopt.GetoptError, err:
             print 'Error', err
-                self.usage()
-                sys.exit(0)
+            self.usage()
+            sys.exit(0)
         for o, a in opts:
-                if o in ('--commit'):
-                    self.opt_commit = True
-                if o in ('--dryrun', '--dry-run'):
-                    self.opt_dryrun = True
-                if o in ('-h', '--help'):
-                        self.usage()
-                        sys.exit()
-                if o in ('-v', '--verbose'):
-                    self.opt_verbose = True
+            if o in ('--commit'):
+                self.opt_commit = True
+            if o in ('--dryrun', '--dry-run'):
+                self.opt_dryrun = True
+            if o in ('-h', '--help'):
+                self.usage()
+                sys.exit()
+            if o in ('-v', '--verbose'):
+                self.opt_verbose = True
 
         if self.opt_commit:
             self.apply_translation_changes()
 
-        def show_status(self):
+    def show_status(self):
         print 'Language: %(langfull)s - [%(lang)s]\tRelease: %(rel)s\tUsername: %(u)s' % \
                 { 'langfull': self.languagefull, 'lang': self.language, 
                   'rel': self.release, 'u': self.username }
@@ -769,7 +781,7 @@ class GNOMEI18nManage:
     def usage(self):
         print PROGNAME, 'a tool that helps manage translation files from a VCS'
         print 'Usage:', PROGNAME, '<action> <options>'
-            print """Available actions:
+        print """Available actions:
  config      Initial configuration (stored in ~/.gnomemanagevcsrc)
     -l LL  --language LL       language code per ISO 639
            --languagefull LANG language name (as in "British English", Greek, etc)
@@ -808,44 +820,41 @@ class GNOMEI18nManage:
 """
 
     def download_hook(self, blocks_transferred, block_size, file_size):
-            """ A download hook to provide some feedback when downloading """
-            if blocks_transferred == 0:
-                    if file_size > 0:
-                             if self.opt_verbose:
-                                    print 'Downloading', file_size, 'bytes: ',
-                    else:
-                            if self.opt_verbose:
-                                    print 'Downloading: ',
+        """ A download hook to provide some feedback when downloading """
+        if blocks_transferred == 0:
+            if file_size > 0:
+                if self.opt_verbose:
+                    print 'Downloading', file_size, 'bytes: ',
+                else:
+                    if self.opt_verbose:
+                        print 'Downloading: ',
         if self.opt_verbose:
-                sys.stdout.write('#')
-                sys.stdout.flush()
+            sys.stdout.write('#')
+            sys.stdout.flush()
 
 
     def download_file(self, url):
-            """ Downloads a file provided a URL. Returns the filename. """
-            """ Borks on failure """
-            localfilename = 'managevcs-' + self.language + '-' + self.release + '.' + url.split('/')[-1]
-            if not os.path.isfile(localfilename) or os.path.getsize(localfilename) <= 0:
-                    if self.opt_verbose:
-                print 'Will save as', localfilename
-                            print 'Downloading ', url, '...'
-                    try:
-                if os.path.exists(localfilename):
-                    if os.path.getsize(localfilename) <= 0:
-                        os.remove(localfilename)
-                            urllib.urlretrieve(url, localfilename, self.download_hook)
-                    except IOError, (errno, strerror):
-                            print 'I/O error(%s): %s' % (errno, strerror)
-                            sys.exit(-1)
-                    except OSError, err:
-                            print 'Unexpected error: ', err
-                            sys.exit(-1)
-            if self.opt_verbose:
-                        print ' done.'
-            else:
-                    if self.opt_verbose:
-                            print 'Using cached file for ', url
-            return localfilename
+        """
+        Downloads a file provided a URL. Returns the filename.
+        Borks on failure!
+        """
+        localfilename = 'managevcs-%s-%s.xml' % (self.language, self.release)
+        localfilepath = os.path.join(os.curdir, localfilename)
+
+        # Download the file, regardless if it exists or not.
+        try:
+            urllib.urlretrieve(url, localfilename, self.download_hook)
+        except IOError, (errno, strerror):
+            print 'I/O error(%s): %s' % (errno, strerror)
+            sys.exit(-1)
+        except OSError, err:
+            print 'Unexpected error: ', err
+            sys.exit(-1)
+
+        if self.opt_verbose:
+            print ' done.'
+
+        return localfilename
 
     def writeconfig(self):
         config = ConfigParser.ConfigParser()
@@ -872,14 +881,21 @@ class GNOMEI18nManage:
             print 'Error:', err
             sys.exit(10)
 
-        configfile = open(self.file_CONFIG, 'wb')
-        config.write(configfile)
-        configfile.close()
+        try:
+            cf = open(self.conf_file, 'wb')
+            config.write(cf)
+            cf.close()
+        except Exception, e:
+            print "Oooops"
 
     def readconfig(self):
+        """
+        Reads the existing configuration file.
+        """
         config = ConfigParser.ConfigParser()
-        if os.path.exists(self.file_CONFIG):
-            config.read(self.file_CONFIG)
+
+        if os.path.exists(self.conf_file):
+            config.read(self.conf_file)
 
             try:
                 self.dir_vcs = config.get('Intltool-Manage-VCS', 'vcsdir')
@@ -889,10 +905,13 @@ class GNOMEI18nManage:
                 self.username = config.get('Intltool-Manage-VCS', 'username')
                 self.dir_po = config.get('Intltool-Manage-VCS', 'podir')
             except ConfigParser.NoOptionError, err:
-                if not self.action_config:  
-                    print 'Error:', err
+                if not self.action_config:
+                    print 'Error:', str(err)
                     print 'Please use --config and the relevant argument to set the missing setting'
                     print 'Exiting...'
                     sys.exit(10)
+        else:
+            print "The configuration file %s was not found!" % self.conf_file
+            sys.exit(10)
 
 start = GNOMEI18nManage(sys.argv)
