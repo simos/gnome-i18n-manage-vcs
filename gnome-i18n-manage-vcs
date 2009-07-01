@@ -195,6 +195,9 @@ class GNOMEI18nManage:
             os.mkdir(self.conf_dir)
 
         self.data_dir = os.path.join(xdg_data_home, PROGNAME)
+        # Create the directory if it doesn't exist
+        if not os.path.isdir(self.data_dir):
+            os.mkdir(self.data_dir)
 
         # Configuration file
         self.conf_file = os.path.join(self.conf_dir, '%s.conf' % PROGNAME)
@@ -314,13 +317,14 @@ class GNOMEI18nManage:
 
     def process_poget(self, cmdargs):
         try:
-                opts, args = getopt.getopt(cmdargs, 'c:dhqst:u:', ['category=', 'clean', 
-                        'commit', 'dryrun', 'dry-run', 
-                        'help', 'module=', 'transtype=', 'verbose' ])
+            opts, args = getopt.getopt(cmdargs, 'c:dhqst:u:', ['category=', 'clean', 
+                'commit', 'dryrun', 'dry-run', 
+                'help', 'module=', 'transtype=', 'verbose' ])
         except getopt.GetoptError, err:
             print 'Error', err
             self.usage()
             sys.exit(0)
+
         for o, a in opts:
             if o in ('--clean'):
                 self.opt_clean = True
@@ -363,6 +367,10 @@ class GNOMEI18nManage:
         self.parse_gnome_release_data() 
         release = self.gnome_release_data['release']
         language = self.gnome_release_data['language']
+
+        # Create a new directory for this release
+        podir = self.createreleasedirectory(release)
+
         print 'Release  :', release
         print 'Language :', language
         for cat in self.gnome_release_data['categories'].keys():
@@ -601,6 +609,7 @@ class GNOMEI18nManage:
             self.apply_translation_changes()
 
     def show_status(self):
+        import epdb; epdb.st()
         print 'Language: %(langfull)s - [%(lang)s]\tRelease: %(rel)s\tUsername: %(u)s' % \
                 { 'langfull': self.languagefull, 'lang': self.language, 
                   'rel': self.release, 'u': self.username }
@@ -751,16 +760,18 @@ class GNOMEI18nManage:
             self.process_stats('execute')
 
     def parse_gnome_release_data(self):
+        filename = 'managevcs-%s-%s.xml' % (self.language, self.release)
+        filepath = os.path.join(os.curdir, filename)
         self.xmlurl = 'http://l10n.gnome.org/languages/' + self.language + '/' + self.release + '/xml'
-        self.xmlfilename = self.download_file(self.xmlurl)
+        self.download_file(self.xmlurl, filepath)
 
         # An error page is about 2.5KB, a proper XML file is circa 50KB.
-        if os.path.getsize(self.xmlfilename) < 5000:
+        if os.path.getsize(filepath) < 5000:
             print 'Language', self.language, 'was not found.\nExiting...'
-            os.remove(self.xmlfilename)
+            os.remove(filepath)
             sys.exit(-7)
 
-        self.gnome_release_data = self.parse_gnome_xml_file(self.xmlfilename)
+        self.gnome_release_data = self.parse_gnome_xml_file(filepath)
 
     def parse_gnome_xml_file(self, filename):
         try:
@@ -833,17 +844,14 @@ class GNOMEI18nManage:
             sys.stdout.flush()
 
 
-    def download_file(self, url):
+    def download_file(self, url, filepath):
         """
-        Downloads a file provided a URL. Returns the filename.
-        Borks on failure!
+        Downloads a file provided a URL and saves it as filepath.
         """
-        localfilename = 'managevcs-%s-%s.xml' % (self.language, self.release)
-        localfilepath = os.path.join(os.curdir, localfilename)
 
         # Download the file, regardless if it exists or not.
         try:
-            urllib.urlretrieve(url, localfilename, self.download_hook)
+            urllib.urlretrieve(url, filepath, self.download_hook)
         except IOError, (errno, strerror):
             print 'I/O error(%s): %s' % (errno, strerror)
             sys.exit(-1)
@@ -854,7 +862,27 @@ class GNOMEI18nManage:
         if self.opt_verbose:
             print ' done.'
 
-        return localfilename
+    def createreleasedirectory(self, release):
+        """
+        Creates the directories required to save files for a given release.
+        """
+
+        # TODO: the po and vcs files should be variables and the final path
+        # could be an attribute of the release itself.
+
+        # First a directory for the release
+        if not os.path.isdir(os.path.join(self.data_dir, release)):
+            os.mkdir(os.path.join(self.data_dir, release))
+
+        # Now a directory to store the PO files...
+        if not os.path.isdir(os.path.join(self.data_dir, release, 'po')):
+            os.mkdir(os.path.join(self.data_dir, release, 'po'))
+
+        # ... and a directory to store the VCS files from a clone
+        if not os.path.isdir(os.path.join(self.data_dir, release, 'vcs')):
+            os.mkdir(os.path.join(self.data_dir, release, 'vcs'))
+
+        return os.path.join(self.data_dir, release, 'po')
 
     def writeconfig(self):
         config = ConfigParser.ConfigParser()
