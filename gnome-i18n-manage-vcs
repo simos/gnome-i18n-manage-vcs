@@ -17,22 +17,22 @@
 # Author  : Simos Xenitellis <simos@gnome.org>, 2009
 # Version : 0.9
 
-import dircache		# dircache.listdir()
-import os		# os.system(), os.remove(), os.path.gmtime(), os.getenv()
-import getopt		# getopt.getopt()
-import shutil		# shutil.rmtree()
-import sys		# sys.argv, sys.exit()
-import urllib		# urllib.urlretrieve()
-import ConfigParser	# ConfigParser()
-from datetime import datetime	# datetime()
+import dircache     # dircache.listdir()
+import os       # os.system(), os.remove(), os.path.gmtime(), os.getenv()
+import getopt       # getopt.getopt()
+import shutil       # shutil.rmtree()
+import sys      # sys.argv, sys.exit()
+import urllib       # urllib.urlretrieve()
+import ConfigParser # ConfigParser()
+from datetime import datetime   # datetime()
 
 try:
-	from lxml import etree  # etree.XMLParser(), etree.XML()
+    from lxml import etree  # etree.XMLParser(), etree.XML()
 except ImportError, err:
-	print 'Import error:', err
-	print 'This script requires to have the python-lxml package installed'
-	print 'Please install the package python-lxml and try again.\nExiting...'
-	sys.exit(-10)
+    print 'Import error:', err
+    print 'This script requires to have the python-lxml package installed'
+    print 'Please install the package python-lxml and try again.\nExiting...'
+    sys.exit(-10)
 
 PROGNAME='gnome-i18n-manage-vcs'
 
@@ -42,857 +42,857 @@ PACKAGE_AUTHORS = ['Simos Xenitellis <simos@gnome.org>']
 PACKAGE_COPYRIGHT = 'Copyright 2009 Simos Xenitellis'
 
 class GNOMEI18nTarget:
-	def __init__(self):
-		self.message_states = ['translated', 'untranslated', 'fuzzy', 'docfuzzy', 'docuntranslated', 'doctranslated']
-		self.flags = []
+    def __init__(self):
+        self.message_states = ['translated', 'untranslated', 'fuzzy', 'docfuzzy', 'docuntranslated', 'doctranslated']
+        self.flags = []
 
-		self.stats_release = None
-		self.stats_language = None
+        self.stats_release = None
+        self.stats_language = None
 
-		self.category_id = None
+        self.category_id = None
 
-		self.module_id = None
-		self.module_branch = None		
+        self.module_id = None
+        self.module_branch = None       
 
-		self.domain = None
-		self.document = None
+        self.domain = None
+        self.document = None
 
-		self.pofile = None
-		self.vcspath = None
+        self.pofile = None
+        self.vcspath = None
 
-		self.resources = []
-		self.module = {}
-		self.category = {}
-		self.stats = {}
+        self.resources = []
+        self.module = {}
+        self.category = {}
+        self.stats = {}
 
-	def start(self, tag, attrib):
-		if tag not in self.message_states:
-			if tag == 'domain':
-				self.domain = attrib['id']
-			elif tag == 'document':
-				self.document = attrib['id']
-			elif tag == 'module':
-				self.module_id = attrib['id']
-				self.module_branch = attrib['branch']
-			elif tag == 'category':
-				self.category_id = attrib['id']
-			elif tag == 'stats':
-				self.stats_release = attrib['release']
-				self.stats_language = attrib['language']
-			elif tag not in ['pofile', 'svnpath']:
-				# Should not be reached
-				#print self.tabs[:self.level], ('start %s %s' % (tag, attrib))
-				pass
-			self.push_flag(tag)
+    def start(self, tag, attrib):
+        if tag not in self.message_states:
+            if tag == 'domain':
+                self.domain = attrib['id']
+            elif tag == 'document':
+                self.document = attrib['id']
+            elif tag == 'module':
+                self.module_id = attrib['id']
+                self.module_branch = attrib['branch']
+            elif tag == 'category':
+                self.category_id = attrib['id']
+            elif tag == 'stats':
+                self.stats_release = attrib['release']
+                self.stats_language = attrib['language']
+            elif tag not in ['pofile', 'svnpath']:
+                # Should not be reached
+                #print self.tabs[:self.level], ('start %s %s' % (tag, attrib))
+                pass
+            self.push_flag(tag)
 
         def end(self, tag):
-		if tag not in self.message_states:
-			if tag == 'domain':
-				self.resources.append({'id': tag, 'type': self.domain, 
-					'pofile': self.pofile, 'vcspath' : self.vcspath }) 
-				self.domain = self.pofile = self.vcspath = None
-			elif tag == 'document':
-				self.resources.append({'id': tag, 'type': self.document, 
-					'pofile': self.pofile, 'vcspath' : self.vcspath }) 
-				self.document = self.pofile = self.vcspath = None
-			elif tag == 'module':
-				self.module[self.module_id] = { 'branch': self.module_branch, 'resource': self.resources }
-				self.module_id = self.module_branch = None
-				self.resources = []
-			elif tag == 'category':
-				self.category[self.category_id] = self.module
-				self.module = {}
-				self.category_id = None
-			elif tag == 'stats':
-				self.stats = { 'language': self.stats_language, 'release': self.stats_release, 
-						'categories': self.category } 
-				self.category = {}
-				self.stats_release = self.stats_language = None
-			elif tag not in ['pofile', 'svnpath']:
-				# Should not be reached
-            			#print self.tabs[:self.level], ('end %s' % tag)
-				pass
-			self.pop_flag(tag)
+        if tag not in self.message_states:
+            if tag == 'domain':
+                self.resources.append({'id': tag, 'type': self.domain, 
+                    'pofile': self.pofile, 'vcspath' : self.vcspath }) 
+                self.domain = self.pofile = self.vcspath = None
+            elif tag == 'document':
+                self.resources.append({'id': tag, 'type': self.document, 
+                    'pofile': self.pofile, 'vcspath' : self.vcspath }) 
+                self.document = self.pofile = self.vcspath = None
+            elif tag == 'module':
+                self.module[self.module_id] = { 'branch': self.module_branch, 'resource': self.resources }
+                self.module_id = self.module_branch = None
+                self.resources = []
+            elif tag == 'category':
+                self.category[self.category_id] = self.module
+                self.module = {}
+                self.category_id = None
+            elif tag == 'stats':
+                self.stats = { 'language': self.stats_language, 'release': self.stats_release, 
+                        'categories': self.category } 
+                self.category = {}
+                self.stats_release = self.stats_language = None
+            elif tag not in ['pofile', 'svnpath']:
+                # Should not be reached
+                        #print self.tabs[:self.level], ('end %s' % tag)
+                pass
+            self.pop_flag(tag)
 
         def data(self, data):
-	    	if not data.isspace() and not data.isdigit():
-			if self.flags[-1] == 'pofile':
-				self.pofile = data
-			elif self.flags[-1] == 'svnpath':
-				self.vcspath = data
-			else:
-				# Should not be reached
-            			#print self.tabs[:self.level], ('data %r' % data)
-				pass
+            if not data.isspace() and not data.isdigit():
+            if self.flags[-1] == 'pofile':
+                self.pofile = data
+            elif self.flags[-1] == 'svnpath':
+                self.vcspath = data
+            else:
+                # Should not be reached
+                        #print self.tabs[:self.level], ('data %r' % data)
+                pass
 
         def comment(self, text):
-		pass
+        pass
 
         def close(self):
-            	return True
+                return True
 
-	def push_flag(self, tag):
-		self.flags.append(tag)
+    def push_flag(self, tag):
+        self.flags.append(tag)
 
-	def pop_flag(self, tag):
-		if self.flags.pop() != tag:
-			print 'ERROR, did not pop', tag
+    def pop_flag(self, tag):
+        if self.flags.pop() != tag:
+            print 'ERROR, did not pop', tag
 
-	def get_stats(self):
-		return self.stats
+    def get_stats(self):
+        return self.stats
 
 class GNOMEI18nManage:
-	language = ''
-	languagefull = ''
-	username = ''
-	release = ''
+    language = ''
+    languagefull = ''
+    username = ''
+    release = ''
 
-	category = ''
-	module = ''
-	transtype = ''		# either 'doc' or 'ui' ('document' or 'domain')
+    category = ''
+    module = ''
+    transtype = ''      # either 'doc' or 'ui' ('document' or 'domain')
 
-	xmlurl = ''
-	xmlfilename = ''
-	gnome_release_data = []
+    xmlurl = ''
+    xmlfilename = ''
+    gnome_release_data = []
 
-	dir_po = ''
-	dir_vcs = ''
-	file_START = 'START'
+    dir_po = ''
+    dir_vcs = ''
+    file_START = 'START'
 
-	file_CONFIG = ''
+    file_CONFIG = ''
 
-	action_config = False
-	action_status = False
-	action_vcsmanage = False
-	action_poget = False
-	action_pocommit = False
+    action_config = False
+    action_status = False
+    action_vcsmanage = False
+    action_poget = False
+    action_pocommit = False
 
-	opt_commit = False
-	opt_clone = False
-	opt_dryrun = False
-	opt_eponymous = False
-	opt_init = False
-	opt_clean = False
-	opt_gitverbose = False
-	opt_nocheckout = False
-	opt_trim = False
-	opt_verbose = False
-	opt_vcsreset = False
-	opt_vcsupdate = False
+    opt_commit = False
+    opt_clone = False
+    opt_dryrun = False
+    opt_eponymous = False
+    opt_init = False
+    opt_clean = False
+    opt_gitverbose = False
+    opt_nocheckout = False
+    opt_trim = False
+    opt_verbose = False
+    opt_vcsreset = False
+    opt_vcsupdate = False
 
-	def __init__(self, argv):
-		if not argv[1:]:
-			self.usage()
-			sys.exit(0)
+    def __init__(self, argv):
+        if not argv[1:]:
+            self.usage()
+            sys.exit(0)
 
-		self.file_CONFIG = os.getenv('HOME') + '/' + '.gnomemanagevcsrc'
+        self.file_CONFIG = os.getenv('HOME') + '/' + '.gnomemanagevcsrc'
 
-		if argv[1] == 'config':
-                	self.action_config = True
-		elif argv[1] == 'status':
-                	self.action_status = True
-		elif argv[1] == 'vcsmanage':
-			self.action_vcsmanage = True
-		elif argv[1] == 'poget':
-			self.action_poget = True
-		elif argv[1] == 'pocommit':
-			self.action_pocommit = True
-		else:
-			print 'Please specify action'
-			print 'Available actions are:'
-			print ' * config       configures the local settings'
-			print ' * status       show detailed status'
-			print ' * vcsmanage    repository management tasks'
-			print ' * poget        retrieval of PO files'
-			print ' * pocommit     commiting PO files'
-			print 
-			print 'Exiting...'
-			sys.exit(11)
-		
-		self.readconfig()
+        if argv[1] == 'config':
+                    self.action_config = True
+        elif argv[1] == 'status':
+                    self.action_status = True
+        elif argv[1] == 'vcsmanage':
+            self.action_vcsmanage = True
+        elif argv[1] == 'poget':
+            self.action_poget = True
+        elif argv[1] == 'pocommit':
+            self.action_pocommit = True
+        else:
+            print 'Please specify action'
+            print 'Available actions are:'
+            print ' * config       configures the local settings'
+            print ' * status       show detailed status'
+            print ' * vcsmanage    repository management tasks'
+            print ' * poget        retrieval of PO files'
+            print ' * pocommit     commiting PO files'
+            print 
+            print 'Exiting...'
+            sys.exit(11)
+        
+        self.readconfig()
 
-		if self.action_config:
-			self.process_config(argv[2:])
-		if self.action_status:
-			self.process_status(argv[2:])
-		elif self.action_vcsmanage:
-			self.process_vcsmanage(argv[2:])
-		elif self.action_poget:
-			self.process_poget(argv[2:])
-		elif self.action_pocommit:
-			self.process_pocommit(argv[2:])
+        if self.action_config:
+            self.process_config(argv[2:])
+        if self.action_status:
+            self.process_status(argv[2:])
+        elif self.action_vcsmanage:
+            self.process_vcsmanage(argv[2:])
+        elif self.action_poget:
+            self.process_poget(argv[2:])
+        elif self.action_pocommit:
+            self.process_pocommit(argv[2:])
 
-	def process_config(self, cmdargs):
-		if not cmdargs:
-			self.usage()
-			sys.exit(0)
+    def process_config(self, cmdargs):
+        if not cmdargs:
+            self.usage()
+            sys.exit(0)
 
-		try:
-		        opts, args = getopt.getopt(cmdargs, 'hl:r:su:v', [
-						'help', 'language=', 'languagefull=', 
-						'podir=', 'release=', 'status', 
-						'vcsdir=', 'verbose', 'username=' ])
-		except getopt.GetoptError, err:
-			print 'Error', err
-        		self.usage()
-        		sys.exit(0)
+        try:
+                opts, args = getopt.getopt(cmdargs, 'hl:r:su:v', [
+                        'help', 'language=', 'languagefull=', 
+                        'podir=', 'release=', 'status', 
+                        'vcsdir=', 'verbose', 'username=' ])
+        except getopt.GetoptError, err:
+            print 'Error', err
+                self.usage()
+                sys.exit(0)
 
-		for o, a in opts:
-	        	if o in ('-h', '--help'):
-       	  		     	self.usage()
-        		     	sys.exit()
-        		if o in ('-l', '--language'):
-        			self.language = a
-        		if o in ('--languagefull'):
-                		self.languagefull = a
-			if o in ('--podir'):
-			 	self.dir_po = a
-			if o in ('-r', '--release'):
-			 	self.release = a
-     			if o in ('-s', '--status'):
-				self.opt_status = True
-        		if o in ('-u', '--username'):
-        			self.username = a
-        		if o in ('--vcsdir'):
-        			self.dir_vcs = a
-        		if o in ('-v', '--verbose'):
-        			self.opt_verbose = True
+        for o, a in opts:
+                if o in ('-h', '--help'):
+                        self.usage()
+                        sys.exit()
+                if o in ('-l', '--language'):
+                    self.language = a
+                if o in ('--languagefull'):
+                        self.languagefull = a
+            if o in ('--podir'):
+                self.dir_po = a
+            if o in ('-r', '--release'):
+                self.release = a
+                if o in ('-s', '--status'):
+                self.opt_status = True
+                if o in ('-u', '--username'):
+                    self.username = a
+                if o in ('--vcsdir'):
+                    self.dir_vcs = a
+                if o in ('-v', '--verbose'):
+                    self.opt_verbose = True
 
-		if not os.path.exists(self.file_CONFIG):
-			if self.opt_verbose:
-				print 'Could not find file', self.file_CONFIG
-				print 'Creating new configuration file...'
+        if not os.path.exists(self.file_CONFIG):
+            if self.opt_verbose:
+                print 'Could not find file', self.file_CONFIG
+                print 'Creating new configuration file...'
 
-		if self.language == '' or self.languagefull == '' or self.release == '' or \
-		   self.username == '' or self.dir_po == '' or self.dir_vcs == '':
-			print 'Error: Required parameter(s) missing for configuration'
-			print 'When using the "config" action for the first time, please specify all of the'
-			print 'following.'
-			print ' 1. --language LL, language (ISO 639), i.e. en_GB, el, fr, es'
-			print ' 2. --languagefull LANGUAGE, i.e. "British English", Greek, French, Spanish'
-			print ' 3. --release REL, GNOME release, i.e. gnome-2-26, gnome-2-28'
-			print ' 4. --username USER, username (your git username, or "anonymous" for anonymous clones'
-			print ' 5. --vcsdir VCSDIR, full path to where the repositories shall reside in'
-			print ' 6. --podir PODIR, full path to directoty with PO files for processing'
-			print
-			print 'Received: language =', self.language, '- languagefull =', self.languagefull, '- release =', self.release
-			print 'Received: username =', self.username, '- vcsdir =', self.dir_vcs, '- podir =', self.dir_po
-			print
-			print 'Run this script without parameters for more help.'
-			print 'Exiting...'
-			sys.exit(-1)
-			print
-			print 'Run this script without parameters for more help.'
-			print 'Exiting...'
-			sys.exit(-1)
+        if self.language == '' or self.languagefull == '' or self.release == '' or \
+           self.username == '' or self.dir_po == '' or self.dir_vcs == '':
+            print 'Error: Required parameter(s) missing for configuration'
+            print 'When using the "config" action for the first time, please specify all of the'
+            print 'following.'
+            print ' 1. --language LL, language (ISO 639), i.e. en_GB, el, fr, es'
+            print ' 2. --languagefull LANGUAGE, i.e. "British English", Greek, French, Spanish'
+            print ' 3. --release REL, GNOME release, i.e. gnome-2-26, gnome-2-28'
+            print ' 4. --username USER, username (your git username, or "anonymous" for anonymous clones'
+            print ' 5. --vcsdir VCSDIR, full path to where the repositories shall reside in'
+            print ' 6. --podir PODIR, full path to directoty with PO files for processing'
+            print
+            print 'Received: language =', self.language, '- languagefull =', self.languagefull, '- release =', self.release
+            print 'Received: username =', self.username, '- vcsdir =', self.dir_vcs, '- podir =', self.dir_po
+            print
+            print 'Run this script without parameters for more help.'
+            print 'Exiting...'
+            sys.exit(-1)
+            print
+            print 'Run this script without parameters for more help.'
+            print 'Exiting...'
+            sys.exit(-1)
 
-		for dir in [self.dir_po, self.dir_vcs]:
-			if not os.path.exists(dir):
-				print 'Directory', dir, 'does not exist.'
-				print 'Please create it and try again.'
-				print 'Exiting...'
-				sys.exit(-1)
+        for dir in [self.dir_po, self.dir_vcs]:
+            if not os.path.exists(dir):
+                print 'Directory', dir, 'does not exist.'
+                print 'Please create it and try again.'
+                print 'Exiting...'
+                sys.exit(-1)
 
-		self.writeconfig()
-		if self.opt_verbose:
-			print 'Use "config --status" to view the current configuration settings.'
+        self.writeconfig()
+        if self.opt_verbose:
+            print 'Use "config --status" to view the current configuration settings.'
 
-	def process_status(self, cmdargs):
-		self.show_status()
+    def process_status(self, cmdargs):
+        self.show_status()
 
-	def process_poget(self, cmdargs):
-		try:
-		        opts, args = getopt.getopt(cmdargs, 'c:dhqst:u:', ['category=', 'clean', 
-						'commit', 'dryrun', 'dry-run', 
-						'help', 'module=', 'transtype=', 'verbose' ])
-		except getopt.GetoptError, err:
-			print 'Error', err
-        		self.usage()
-        		sys.exit(0)
-		for o, a in opts:
-        		if o in ('--clean'):
-        			self.opt_clean = True
-        		if o in ('-c', '--category'):
-        	 		self.category = a
-        		if o in ('--dryrun', '--dry-run'):
-        			self.opt_dryrun = True
-	        	if o in ('-h', '--help'):
-       	  		     	self.usage()
-        		     	sys.exit()
-        		if o in ('-m', '--module'):
-        			self.module = a
-     			if o in ('--transtype'):
-				if a in ['ui', 'domain']:
-					self.transtype = 'domain'
-				elif a in ['doc', 'document']:
-					self.transtype = 'document'
-				else:
-					print 'ERROR: Invalid transtype, expected on of ui, doc, domain, document'
-					sys.exit(-4)
-        		if o in ('-v', '--verbose'):
-        			self.opt_verbose = True
+    def process_poget(self, cmdargs):
+        try:
+                opts, args = getopt.getopt(cmdargs, 'c:dhqst:u:', ['category=', 'clean', 
+                        'commit', 'dryrun', 'dry-run', 
+                        'help', 'module=', 'transtype=', 'verbose' ])
+        except getopt.GetoptError, err:
+            print 'Error', err
+                self.usage()
+                sys.exit(0)
+        for o, a in opts:
+                if o in ('--clean'):
+                    self.opt_clean = True
+                if o in ('-c', '--category'):
+                    self.category = a
+                if o in ('--dryrun', '--dry-run'):
+                    self.opt_dryrun = True
+                if o in ('-h', '--help'):
+                        self.usage()
+                        sys.exit()
+                if o in ('-m', '--module'):
+                    self.module = a
+                if o in ('--transtype'):
+                if a in ['ui', 'domain']:
+                    self.transtype = 'domain'
+                elif a in ['doc', 'document']:
+                    self.transtype = 'document'
+                else:
+                    print 'ERROR: Invalid transtype, expected on of ui, doc, domain, document'
+                    sys.exit(-4)
+                if o in ('-v', '--verbose'):
+                    self.opt_verbose = True
 
-		if self.opt_clean:
-			podircontents = dircache.listdir(self.dir_po)
-			podircontents = podircontents[:]
-			try: 
-				podircontents.remove(self.file_START)
-			except ValueError, err:
-				pass
-			print 'Found', len(podircontents), 'PO files to remove' 
-			for pofile in podircontents:
-				if self.opt_dryrun:
-					print 'To remove', pofile
-				else:
-					print 'Removing', pofile
-					os.remove(self.dir_po + pofile)
-			sys.exit(0)
+        if self.opt_clean:
+            podircontents = dircache.listdir(self.dir_po)
+            podircontents = podircontents[:]
+            try: 
+                podircontents.remove(self.file_START)
+            except ValueError, err:
+                pass
+            print 'Found', len(podircontents), 'PO files to remove' 
+            for pofile in podircontents:
+                if self.opt_dryrun:
+                    print 'To remove', pofile
+                else:
+                    print 'Removing', pofile
+                    os.remove(self.dir_po + pofile)
+            sys.exit(0)
 
-		self.parse_gnome_release_data()	
-		release = self.gnome_release_data['release']
-		language = self.gnome_release_data['language']
-		print 'Release  :', release
-		print 'Language :', language
-		for cat in self.gnome_release_data['categories'].keys():
-			if self.category != '' and cat != self.category:
-				continue
-			print '    Category: %(cat)s' % { 'cat': cat }
-			for mod in self.gnome_release_data['categories'][cat]:
-				if self.module != '' and mod != self.module:
-					continue
-				print '        Module: %(br)22s, Branch: %(mod)s' % { 'br': mod, \
-					'mod': self.gnome_release_data['categories'][cat][mod]['branch'] }
-				for resource in self.gnome_release_data['categories'][cat][mod]['resource']:
-					if self.transtype: 
-						if resource['id'] not in self.transtype:
-							continue
-					if self.opt_verbose:
-						print '        ID:', resource['id'], 'Type:', resource['type']
-						print '          POFile:', resource['pofile']
-						print '          VCSPath:', resource['vcspath']
-					pofilename = resource['pofile'].rsplit('/')[-1]
+        self.parse_gnome_release_data() 
+        release = self.gnome_release_data['release']
+        language = self.gnome_release_data['language']
+        print 'Release  :', release
+        print 'Language :', language
+        for cat in self.gnome_release_data['categories'].keys():
+            if self.category != '' and cat != self.category:
+                continue
+            print '    Category: %(cat)s' % { 'cat': cat }
+            for mod in self.gnome_release_data['categories'][cat]:
+                if self.module != '' and mod != self.module:
+                    continue
+                print '        Module: %(br)22s, Branch: %(mod)s' % { 'br': mod, \
+                    'mod': self.gnome_release_data['categories'][cat][mod]['branch'] }
+                for resource in self.gnome_release_data['categories'][cat][mod]['resource']:
+                    if self.transtype: 
+                        if resource['id'] not in self.transtype:
+                            continue
+                    if self.opt_verbose:
+                        print '        ID:', resource['id'], 'Type:', resource['type']
+                        print '          POFile:', resource['pofile']
+                        print '          VCSPath:', resource['vcspath']
+                    pofilename = resource['pofile'].rsplit('/')[-1]
 
-					if self.opt_verbose:
-						CMD2 = 'wget http://l10n.gnome.org' + resource['pofile'] + \
-							' -O ' + self.dir_po + pofilename
-					else:
-						CMD2 = 'wget --quiet http://l10n.gnome.org' + resource['pofile'] + \
-							' -O ' + self.dir_po + pofilename
+                    if self.opt_verbose:
+                        CMD2 = 'wget http://l10n.gnome.org' + resource['pofile'] + \
+                            ' -O ' + self.dir_po + pofilename
+                    else:
+                        CMD2 = 'wget --quiet http://l10n.gnome.org' + resource['pofile'] + \
+                            ' -O ' + self.dir_po + pofilename
 
-					if self.opt_dryrun and self.opt_verbose:
-						print '            CMD:', CMD2
-					elif not self.opt_dryrun:
-						if self.opt_verbose:
-							print '\t\tTouching current time at', self.dir_po + self.file_START
-						os.system('touch ' + self.dir_po + self.file_START)
-						os.system(CMD2)
+                    if self.opt_dryrun and self.opt_verbose:
+                        print '            CMD:', CMD2
+                    elif not self.opt_dryrun:
+                        if self.opt_verbose:
+                            print '\t\tTouching current time at', self.dir_po + self.file_START
+                        os.system('touch ' + self.dir_po + self.file_START)
+                        os.system(CMD2)
 
-	def process_vcsmanage(self, cmdargs):
-		try:
-		        opts, args = getopt.getopt(cmdargs, 'ac:dhl:qr:st:u:', ['category=', 'clean', 
-						'commit', 'clone', 'dryrun', 'dry-run', 'eponymous',
-						'help', 'module=', 'no-checkout',
-						'reset', 'gitverbose', 'transtype=', 'trim',
-						'verbose', 'username=', 'update-vcs', 'updatevcs', 
-						'vcsupdate', 'vcs-update' ])
-		except getopt.GetoptError, err:
-			print 'Error', err
-        		self.usage()
-        		sys.exit(0)
-		for o, a in opts:
-        		if o in ('--clean'):
-        			self.opt_clean = True
-        		if o in ('-c', '--category'):
-        	 		self.category = a
-        		if o in ('--clone'):
-        	 		self.opt_clone = True
-        		if o in ('--dryrun', '--dry-run'):
-        			self.opt_dryrun = True
-        		if o in ('--eponymous'):
-        			self.opt_eponymous = True
-			if o in ('--gitverbose'):
-				self.opt_gitverbose = True
-	        	if o in ('-h', '--help'):
-       	  		     	self.usage()
-        		     	sys.exit()
-        		if o in ('-m', '--module'):
-        			self.module = a
-        		if o in ('--no-checkout'):
-        			self.opt_nocheckout = True
-			if o in ('--reset'):
-			 	self.opt_vcsreset = True
-     			if o in ('--transtype'):
-				if a in ['ui', 'domain']:
-					self.transtype = 'domain'
-				elif a in ['doc', 'document']:
-					self.transtype = 'document'
-				else:
-					print 'ERROR: Invalid transtype, expected on of ui, doc, domain, document'
-					sys.exit(-4)
-        		if o in ('--trim'):
-        			self.opt_trim = True
-        		if o in ('-v', '--verbose'):
-        			self.opt_verbose = True
-        		if o in ('-u', '--username'):
-        			self.username = a
-			if o in ('--update-vcs', '--updatevcs', '--vcs-update', '--vcsupdate'):
-				self.opt_vcsupdate = True
+    def process_vcsmanage(self, cmdargs):
+        try:
+                opts, args = getopt.getopt(cmdargs, 'ac:dhl:qr:st:u:', ['category=', 'clean', 
+                        'commit', 'clone', 'dryrun', 'dry-run', 'eponymous',
+                        'help', 'module=', 'no-checkout',
+                        'reset', 'gitverbose', 'transtype=', 'trim',
+                        'verbose', 'username=', 'update-vcs', 'updatevcs', 
+                        'vcsupdate', 'vcs-update' ])
+        except getopt.GetoptError, err:
+            print 'Error', err
+                self.usage()
+                sys.exit(0)
+        for o, a in opts:
+                if o in ('--clean'):
+                    self.opt_clean = True
+                if o in ('-c', '--category'):
+                    self.category = a
+                if o in ('--clone'):
+                    self.opt_clone = True
+                if o in ('--dryrun', '--dry-run'):
+                    self.opt_dryrun = True
+                if o in ('--eponymous'):
+                    self.opt_eponymous = True
+            if o in ('--gitverbose'):
+                self.opt_gitverbose = True
+                if o in ('-h', '--help'):
+                        self.usage()
+                        sys.exit()
+                if o in ('-m', '--module'):
+                    self.module = a
+                if o in ('--no-checkout'):
+                    self.opt_nocheckout = True
+            if o in ('--reset'):
+                self.opt_vcsreset = True
+                if o in ('--transtype'):
+                if a in ['ui', 'domain']:
+                    self.transtype = 'domain'
+                elif a in ['doc', 'document']:
+                    self.transtype = 'document'
+                else:
+                    print 'ERROR: Invalid transtype, expected on of ui, doc, domain, document'
+                    sys.exit(-4)
+                if o in ('--trim'):
+                    self.opt_trim = True
+                if o in ('-v', '--verbose'):
+                    self.opt_verbose = True
+                if o in ('-u', '--username'):
+                    self.username = a
+            if o in ('--update-vcs', '--updatevcs', '--vcs-update', '--vcsupdate'):
+                self.opt_vcsupdate = True
 
-		if self.opt_vcsreset:
-			self.reset_hard(self.dir_vcs)
+        if self.opt_vcsreset:
+            self.reset_hard(self.dir_vcs)
 
-		if self.opt_clone:
-			self.parse_gnome_release_data()
-			release = self.gnome_release_data['release']
-			language = self.gnome_release_data['language']
-			print 'Release  :', release
-			print 'Language :', language
-			for cat in self.gnome_release_data['categories'].keys():
-				if self.category != '' and cat != self.category:
-					continue
-				print '    Category: %(cat)s' % { 'cat': cat }
-				for mod in self.gnome_release_data['categories'][cat]:
-					if self.module != '' and mod != self.module:
-						continue
-					print '        Module: %(br)22s, Branch: %(mod)s' % { 'br': mod, \
-						'mod': self.gnome_release_data['categories'][cat][mod]['branch'] }
-					for resource in self.gnome_release_data['categories'][cat][mod]['resource']:
-						if self.transtype: 
-							if resource['id'] not in self.transtype:
-								continue
-						if self.opt_verbose:
-							print '        ID:', resource['id'], 'Type:', resource['type']
-							print '          POFile:', resource['pofile']
-							print '          VCSPath:', resource['vcspath']
-						if self.username == 'anonymous':
-							vcspath = 'git://git.gnome.org/' + mod
-						else:
-							vcspath = 'ssh://' + self.username + '@' + 'git.gnome.org/git/' + mod
-						branch = self.gnome_release_data['categories'][cat][mod]['branch']
-	
-						CMD1 = 'cd ' + self.dir_vcs + ';'
-						if self.opt_gitverbose:
-							if self.opt_nocheckout:
-								CMD1 = CMD1 + 'git clone --no-checkout ' + vcspath
-							else:
-								CMD1 = CMD1 + 'git clone ' + vcspath
-						else:
-							if self.opt_nocheckout:
-								CMD1 = CMD1 + 'git clone --no-checkout --quiet ' + vcspath
-							else:
-								CMD1 = CMD1 + 'git clone --quiet ' + vcspath
+        if self.opt_clone:
+            self.parse_gnome_release_data()
+            release = self.gnome_release_data['release']
+            language = self.gnome_release_data['language']
+            print 'Release  :', release
+            print 'Language :', language
+            for cat in self.gnome_release_data['categories'].keys():
+                if self.category != '' and cat != self.category:
+                    continue
+                print '    Category: %(cat)s' % { 'cat': cat }
+                for mod in self.gnome_release_data['categories'][cat]:
+                    if self.module != '' and mod != self.module:
+                        continue
+                    print '        Module: %(br)22s, Branch: %(mod)s' % { 'br': mod, \
+                        'mod': self.gnome_release_data['categories'][cat][mod]['branch'] }
+                    for resource in self.gnome_release_data['categories'][cat][mod]['resource']:
+                        if self.transtype: 
+                            if resource['id'] not in self.transtype:
+                                continue
+                        if self.opt_verbose:
+                            print '        ID:', resource['id'], 'Type:', resource['type']
+                            print '          POFile:', resource['pofile']
+                            print '          VCSPath:', resource['vcspath']
+                        if self.username == 'anonymous':
+                            vcspath = 'git://git.gnome.org/' + mod
+                        else:
+                            vcspath = 'ssh://' + self.username + '@' + 'git.gnome.org/git/' + mod
+                        branch = self.gnome_release_data['categories'][cat][mod]['branch']
+    
+                        CMD1 = 'cd ' + self.dir_vcs + ';'
+                        if self.opt_gitverbose:
+                            if self.opt_nocheckout:
+                                CMD1 = CMD1 + 'git clone --no-checkout ' + vcspath
+                            else:
+                                CMD1 = CMD1 + 'git clone ' + vcspath
+                        else:
+                            if self.opt_nocheckout:
+                                CMD1 = CMD1 + 'git clone --no-checkout --quiet ' + vcspath
+                            else:
+                                CMD1 = CMD1 + 'git clone --quiet ' + vcspath
 
-						if self.opt_dryrun and self.opt_verbose:
-							print '            CMD:', CMD1
-						elif not self.opt_dryrun:
-							if os.path.exists(self.dir_vcs + mod):
-								pass
-								#print 'Cached repository for', mod, 'exists. Skipping cloning...'
-							else:
-								print 'Retrieving module', mod, '...'
-								if self.opt_verbose: 
-									print 
-        							sys.stdout.flush()
-								os.system(CMD1)
-								if not self.opt_verbose:
-									print ' ' * 80 + '\r',
-        							sys.stdout.flush()
-			if not self.opt_verbose:
-				print ' ' * 80 
-				pass
+                        if self.opt_dryrun and self.opt_verbose:
+                            print '            CMD:', CMD1
+                        elif not self.opt_dryrun:
+                            if os.path.exists(self.dir_vcs + mod):
+                                pass
+                                #print 'Cached repository for', mod, 'exists. Skipping cloning...'
+                            else:
+                                print 'Retrieving module', mod, '...'
+                                if self.opt_verbose: 
+                                    print 
+                                    sys.stdout.flush()
+                                os.system(CMD1)
+                                if not self.opt_verbose:
+                                    print ' ' * 80 + '\r',
+                                    sys.stdout.flush()
+            if not self.opt_verbose:
+                print ' ' * 80 
+                pass
 
-		if self.opt_clean:
-			self.do_clean(self.dir_vcs)
+        if self.opt_clean:
+            self.do_clean(self.dir_vcs)
 
-		if self.opt_eponymous:
-			dircontents = dircache.listdir(self.dir_vcs)
-			dircontents = dircontents[:]
-			if self.username == 'anonymous':
-				print 'In order to use --eponymous, you need to set the username to'
-				print 'something other than "anonymous".'
-				print 'Exiting...'
-				sys.exit(-1)
-			cmd_remote_rm = 'git remote rm origin'
-			cmd_remote_origin = 'git config branch.master.remote origin'
-			cmd_remote_merge = 'git config branch.master.merge refs/heads/master'
-			counter = 1
-			for vcsdir in dircontents:
-				print 'Converting', self.dir_vcs + vcsdir, ' -- ', counter, 'of', len(dircontents)
-				cmd_changedir = 'cd ' + self.dir_vcs + vcsdir
-				cmd_remote_add = 'git remote add origin -m master -f ssh://' + self.username \
-					+ '@git.gnome.org/git/' + vcsdir + '/'
-				if self.opt_dryrun:
-					cmd_changedir + ';' + cmd_remote_rm
-					cmd_changedir + ';' + cmd_remote_add
-					cmd_changedir + ';' + cmd_remote_origin
-					cmd_changedir + ';' + cmd_remote_merge
-				else:
-					try: 
-						print os.system(cmd_changedir + ';' + cmd_remote_rm)
-						print os.system(cmd_changedir + ';' + cmd_remote_add)
-						print os.system(cmd_changedir + ';' + cmd_remote_origin)
-						print os.system(cmd_changedir + ';' + cmd_remote_merge)
-					except OSError, err:
-						print err
-						sys.exit(-1)
-				counter = counter + 1
+        if self.opt_eponymous:
+            dircontents = dircache.listdir(self.dir_vcs)
+            dircontents = dircontents[:]
+            if self.username == 'anonymous':
+                print 'In order to use --eponymous, you need to set the username to'
+                print 'something other than "anonymous".'
+                print 'Exiting...'
+                sys.exit(-1)
+            cmd_remote_rm = 'git remote rm origin'
+            cmd_remote_origin = 'git config branch.master.remote origin'
+            cmd_remote_merge = 'git config branch.master.merge refs/heads/master'
+            counter = 1
+            for vcsdir in dircontents:
+                print 'Converting', self.dir_vcs + vcsdir, ' -- ', counter, 'of', len(dircontents)
+                cmd_changedir = 'cd ' + self.dir_vcs + vcsdir
+                cmd_remote_add = 'git remote add origin -m master -f ssh://' + self.username \
+                    + '@git.gnome.org/git/' + vcsdir + '/'
+                if self.opt_dryrun:
+                    cmd_changedir + ';' + cmd_remote_rm
+                    cmd_changedir + ';' + cmd_remote_add
+                    cmd_changedir + ';' + cmd_remote_origin
+                    cmd_changedir + ';' + cmd_remote_merge
+                else:
+                    try: 
+                        print os.system(cmd_changedir + ';' + cmd_remote_rm)
+                        print os.system(cmd_changedir + ';' + cmd_remote_add)
+                        print os.system(cmd_changedir + ';' + cmd_remote_origin)
+                        print os.system(cmd_changedir + ';' + cmd_remote_merge)
+                    except OSError, err:
+                        print err
+                        sys.exit(-1)
+                counter = counter + 1
 
-		if self.opt_trim:
-			dircontents = dircache.listdir(self.dir_vcs)
-			dircontents = dircontents[:]
-			counter = 1
-			for vcsdir in dircontents:
-				print 'Erasing working copy for', self.dir_vcs + vcsdir, ' -- ', counter, 'of', len(dircontents)
-				if self.opt_dryrun:
-					print 'rm -fr ' + self.dir_vcs + vcsdir + '/*'
-				else:
-					os.system('rm -fr ' + self.dir_vcs + vcsdir + '/*')
-				counter = counter + 1
+        if self.opt_trim:
+            dircontents = dircache.listdir(self.dir_vcs)
+            dircontents = dircontents[:]
+            counter = 1
+            for vcsdir in dircontents:
+                print 'Erasing working copy for', self.dir_vcs + vcsdir, ' -- ', counter, 'of', len(dircontents)
+                if self.opt_dryrun:
+                    print 'rm -fr ' + self.dir_vcs + vcsdir + '/*'
+                else:
+                    os.system('rm -fr ' + self.dir_vcs + vcsdir + '/*')
+                counter = counter + 1
 
-		if self.opt_vcsupdate:
-			dircontents = dircache.listdir(self.dir_vcs)
-			dircontents = dircontents[:]
-			cmd_pull = 'git pull --rebase'
-			counter = 1
-			for vcsdir in dircontents:
-				# We commit irrespective of any changed files; if files are not changed, 
-				# no harm is done.
-				###if self.opt_verbose:
-				print 'Pulling for', self.dir_vcs + vcsdir, ' -- ', counter, 'of', len(dircontents)
-				cmd_changedir = 'cd ' + self.dir_vcs + vcsdir
-				if self.opt_dryrun:
-					print cmd_changedir + ';' + cmd_pull
-				else:
-					os.system(cmd_changedir + ';' + cmd_pull)
-				counter = counter + 1
+        if self.opt_vcsupdate:
+            dircontents = dircache.listdir(self.dir_vcs)
+            dircontents = dircontents[:]
+            cmd_pull = 'git pull --rebase'
+            counter = 1
+            for vcsdir in dircontents:
+                # We commit irrespective of any changed files; if files are not changed, 
+                # no harm is done.
+                ###if self.opt_verbose:
+                print 'Pulling for', self.dir_vcs + vcsdir, ' -- ', counter, 'of', len(dircontents)
+                cmd_changedir = 'cd ' + self.dir_vcs + vcsdir
+                if self.opt_dryrun:
+                    print cmd_changedir + ';' + cmd_pull
+                else:
+                    os.system(cmd_changedir + ';' + cmd_pull)
+                counter = counter + 1
 
-	def process_pocommit(self, cmdargs):
-		try:
-		        opts, args = getopt.getopt(cmdargs, 'ac:dhl:qr:st:u:', [ 'commit', 'dryrun', 'dry-run', 
-						'help', 'verbose' ])
-		except getopt.GetoptError, err:
-			print 'Error', err
-        		self.usage()
-        		sys.exit(0)
-		for o, a in opts:
-        		if o in ('--commit'):
-        	 		self.opt_commit = True
-        		if o in ('--dryrun', '--dry-run'):
-        			self.opt_dryrun = True
-	        	if o in ('-h', '--help'):
-       	  		     	self.usage()
-        		     	sys.exit()
-        		if o in ('-v', '--verbose'):
-        			self.opt_verbose = True
+    def process_pocommit(self, cmdargs):
+        try:
+                opts, args = getopt.getopt(cmdargs, 'ac:dhl:qr:st:u:', [ 'commit', 'dryrun', 'dry-run', 
+                        'help', 'verbose' ])
+        except getopt.GetoptError, err:
+            print 'Error', err
+                self.usage()
+                sys.exit(0)
+        for o, a in opts:
+                if o in ('--commit'):
+                    self.opt_commit = True
+                if o in ('--dryrun', '--dry-run'):
+                    self.opt_dryrun = True
+                if o in ('-h', '--help'):
+                        self.usage()
+                        sys.exit()
+                if o in ('-v', '--verbose'):
+                    self.opt_verbose = True
 
-		if self.opt_commit:
-			self.apply_translation_changes()
+        if self.opt_commit:
+            self.apply_translation_changes()
 
         def show_status(self):
-		print 'Language: %(langfull)s - [%(lang)s]\tRelease: %(rel)s\tUsername: %(u)s' % \
-				{ 'langfull': self.languagefull, 'lang': self.language, 
-				  'rel': self.release, 'u': self.username }
-		print
-		print 'VCS Directory:', self.dir_vcs
-		print 'PO  Directory:', self.dir_po
-		print
-		dircontents = dircache.listdir(self.dir_vcs)
-		dircontents = dircontents[:]
-		print len(dircontents), 'repositories found:' 
-		print '\t', ', '.join(map(str, dircontents))
-		if os.path.exists(self.dir_po) or self.dir_po:
-			podircontents = dircache.listdir(self.dir_po)
-			podircontents = podircontents[:]
-			try: 
-				podircontents.remove(self.file_START)
-			except ValueError, err:
-				pass
-			print len(podircontents), 'PO files found:' 
-			for pofile in podircontents:
-				print '\t', pofile
-		else:
-			print 'No PO directory has been specified. Please specify'
-			print 'such a directory with --config --podir <path to dir>.'
-			print 'Exiting...'
-		try:
-			start_time = os.stat(self.dir_po + self.file_START).st_mtime
-		except OSError:
-			start_time = 0
-		if start_time:
-			print 'Timestamp file START has date/time:',  datetime.ctime(datetime.fromtimestamp(start_time))
-		else:
-			print 'No START file exists'
-		print 'PO files that are newer than timestamp:'
-		for pofile in podircontents:
-			potime = os.stat(self.dir_po + pofile).st_mtime
-			if start_time < potime:
-				print '\t', datetime.ctime(datetime.fromtimestamp(potime)), '\t', pofile
+        print 'Language: %(langfull)s - [%(lang)s]\tRelease: %(rel)s\tUsername: %(u)s' % \
+                { 'langfull': self.languagefull, 'lang': self.language, 
+                  'rel': self.release, 'u': self.username }
+        print
+        print 'VCS Directory:', self.dir_vcs
+        print 'PO  Directory:', self.dir_po
+        print
+        dircontents = dircache.listdir(self.dir_vcs)
+        dircontents = dircontents[:]
+        print len(dircontents), 'repositories found:' 
+        print '\t', ', '.join(map(str, dircontents))
+        if os.path.exists(self.dir_po) or self.dir_po:
+            podircontents = dircache.listdir(self.dir_po)
+            podircontents = podircontents[:]
+            try: 
+                podircontents.remove(self.file_START)
+            except ValueError, err:
+                pass
+            print len(podircontents), 'PO files found:' 
+            for pofile in podircontents:
+                print '\t', pofile
+        else:
+            print 'No PO directory has been specified. Please specify'
+            print 'such a directory with --config --podir <path to dir>.'
+            print 'Exiting...'
+        try:
+            start_time = os.stat(self.dir_po + self.file_START).st_mtime
+        except OSError:
+            start_time = 0
+        if start_time:
+            print 'Timestamp file START has date/time:',  datetime.ctime(datetime.fromtimestamp(start_time))
+        else:
+            print 'No START file exists'
+        print 'PO files that are newer than timestamp:'
+        for pofile in podircontents:
+            potime = os.stat(self.dir_po + pofile).st_mtime
+            if start_time < potime:
+                print '\t', datetime.ctime(datetime.fromtimestamp(potime)), '\t', pofile
 
-	def apply_translation_changes(self):
-		vcsdircontents = dircache.listdir(self.dir_vcs)
-		vcsdircontents = vcsdircontents[:]
-		podircontents = dircache.listdir(self.dir_po)
-		podircontents = podircontents[:]
-		try:
-			podircontents.remove(self.file_START)
-		except:
-			pass
-		start_time = os.stat(self.dir_po + self.file_START).st_mtime
-		for pofile in podircontents:
-			print 'VCSPATH', self.get_po_file_data(pofile)
-			fileparts = pofile.split('.')
-			try:
-				if fileparts[0][-5:] != '-help':
-					modulename = fileparts[0]
-					translationtype = '/po/'
-				else:
-					modulename = fileparts[0][:-5]
-					translationtype = '/help/' + self.language + '/'
-				branchname = fileparts[1]
-				languagename = fileparts[2]
-				extensionname = fileparts[3]
-			except IndexError, err:
-				print "Error with", pofile
-				sys.exit(13)
-			if self.language != languagename:
-				print 'Internal error: Language in config does not match language in PO files.'
-				print 'Exiting...'
-				sys.exit(-11)
-			if start_time < os.stat(self.dir_po + pofile).st_mtime:
-				if self.opt_verbose:
-					destination =  self.dir_vcs + \
-						modulename + translationtype + languagename + '.' + extensionname
-					print 'Copying', self.dir_po + pofile, 'to', destination
-					try:
-						os.stat(destination)
-					except OSError, err:
-						print 'but', destination, 'is not there'
-				if not self.opt_dryrun:
-					shutil.copyfile(self.dir_po + pofile,  pofile)
+    def apply_translation_changes(self):
+        vcsdircontents = dircache.listdir(self.dir_vcs)
+        vcsdircontents = vcsdircontents[:]
+        podircontents = dircache.listdir(self.dir_po)
+        podircontents = podircontents[:]
+        try:
+            podircontents.remove(self.file_START)
+        except:
+            pass
+        start_time = os.stat(self.dir_po + self.file_START).st_mtime
+        for pofile in podircontents:
+            print 'VCSPATH', self.get_po_file_data(pofile)
+            fileparts = pofile.split('.')
+            try:
+                if fileparts[0][-5:] != '-help':
+                    modulename = fileparts[0]
+                    translationtype = '/po/'
+                else:
+                    modulename = fileparts[0][:-5]
+                    translationtype = '/help/' + self.language + '/'
+                branchname = fileparts[1]
+                languagename = fileparts[2]
+                extensionname = fileparts[3]
+            except IndexError, err:
+                print "Error with", pofile
+                sys.exit(13)
+            if self.language != languagename:
+                print 'Internal error: Language in config does not match language in PO files.'
+                print 'Exiting...'
+                sys.exit(-11)
+            if start_time < os.stat(self.dir_po + pofile).st_mtime:
+                if self.opt_verbose:
+                    destination =  self.dir_vcs + \
+                        modulename + translationtype + languagename + '.' + extensionname
+                    print 'Copying', self.dir_po + pofile, 'to', destination
+                    try:
+                        os.stat(destination)
+                    except OSError, err:
+                        print 'but', destination, 'is not there'
+                if not self.opt_dryrun:
+                    shutil.copyfile(self.dir_po + pofile,  pofile)
 
-	def get_po_file_data(self, pofile):
-		if not self.gnome_release_data:
-			self.parse_gnome_release_data()
-		
-		if self.gnome_release_data['release'] != self.release:
-			print "Mismatched release data", self.release, self.gnome_release_data['release']
-		if self.gnome_release_data['language'] != self.language:
-			print "Mismatched language data", self.language, self.gnome_release_data['language']
-		for cat in self.gnome_release_data['categories'].keys():
-			if self.category != '' and cat != self.category:
-				continue
-			for mod in self.gnome_release_data['categories'][cat]:
-				if self.module != '' and mod != self.module:
-					continue
-				for resource in self.gnome_release_data['categories'][cat][mod]['resource']:
-					if pofile == resource['pofile'].rsplit('/')[-1]:
-						return resource['vcspath']
-		return None
-		
-	def is_empty(self):
-		for dir in [self.dir_po]:
-			dircontents = dircache.listdir(dir)
-			dircontents = dircontents[:]
-			if dircontents:
-				return False
-		return True
+    def get_po_file_data(self, pofile):
+        if not self.gnome_release_data:
+            self.parse_gnome_release_data()
+        
+        if self.gnome_release_data['release'] != self.release:
+            print "Mismatched release data", self.release, self.gnome_release_data['release']
+        if self.gnome_release_data['language'] != self.language:
+            print "Mismatched language data", self.language, self.gnome_release_data['language']
+        for cat in self.gnome_release_data['categories'].keys():
+            if self.category != '' and cat != self.category:
+                continue
+            for mod in self.gnome_release_data['categories'][cat]:
+                if self.module != '' and mod != self.module:
+                    continue
+                for resource in self.gnome_release_data['categories'][cat][mod]['resource']:
+                    if pofile == resource['pofile'].rsplit('/')[-1]:
+                        return resource['vcspath']
+        return None
+        
+    def is_empty(self):
+        for dir in [self.dir_po]:
+            dircontents = dircache.listdir(dir)
+            dircontents = dircontents[:]
+            if dircontents:
+                return False
+        return True
 
-	def reset_hard(self, dir):
-		dircontents = dircache.listdir(dir)
-		dircontents = dircontents[:]
-		if dircontents:
-			for item in dircontents:
-				if os.path.isdir(dir + item):
-					CMD = 'cd ' + dir + item + '; git reset --hard origin/master'
-					if self.opt_verbose:
-						print CMD
-					if not self.opt_dryrun:
-						print 'Reseting hard', dir + item
-						os.system(CMD)
-					else:
-						print 'Would reset hard', dir + item
+    def reset_hard(self, dir):
+        dircontents = dircache.listdir(dir)
+        dircontents = dircontents[:]
+        if dircontents:
+            for item in dircontents:
+                if os.path.isdir(dir + item):
+                    CMD = 'cd ' + dir + item + '; git reset --hard origin/master'
+                    if self.opt_verbose:
+                        print CMD
+                    if not self.opt_dryrun:
+                        print 'Reseting hard', dir + item
+                        os.system(CMD)
+                    else:
+                        print 'Would reset hard', dir + item
 
-	def do_clean(self, dir):
-		dircontents = dircache.listdir(dir)
-		dircontents = dircontents[:]
-		if dircontents:
-			for item in dircontents:
-				if os.path.isdir(dir + item):
-					if not self.opt_dryrun:
-						print 'Removing directory tree', dir + item
-						shutil.rmtree(dir + item)
-					else:
-						print 'Would remove directory tree', dir + item
+    def do_clean(self, dir):
+        dircontents = dircache.listdir(dir)
+        dircontents = dircontents[:]
+        if dircontents:
+            for item in dircontents:
+                if os.path.isdir(dir + item):
+                    if not self.opt_dryrun:
+                        print 'Removing directory tree', dir + item
+                        shutil.rmtree(dir + item)
+                    else:
+                        print 'Would remove directory tree', dir + item
 
-				else:
-					if not self.opt_dryrun:
-						print 'Removing file', dir + item
-						os.remove(dir + item)
-					else:
-						print 'Would remove file', dir + item
-						
+                else:
+                    if not self.opt_dryrun:
+                        print 'Removing file', dir + item
+                        os.remove(dir + item)
+                    else:
+                        print 'Would remove file', dir + item
+                        
 
-	def init(self):	
-		if self.opt_dryrun:
-			self.process_stats('print')
-		else:
-			self.process_stats('execute')
+    def init(self): 
+        if self.opt_dryrun:
+            self.process_stats('print')
+        else:
+            self.process_stats('execute')
 
-	def parse_gnome_release_data(self):
-		self.xmlurl = 'http://l10n.gnome.org/languages/' + self.language + '/' + self.release + '/xml'
-		self.xmlfilename = self.download_file(self.xmlurl)
+    def parse_gnome_release_data(self):
+        self.xmlurl = 'http://l10n.gnome.org/languages/' + self.language + '/' + self.release + '/xml'
+        self.xmlfilename = self.download_file(self.xmlurl)
 
-		# An error page is about 2.5KB, a proper XML file is circa 50KB.
-		if os.path.getsize(self.xmlfilename) < 5000:
-			print 'Language', self.language, 'was not found.\nExiting...'
-			os.remove(self.xmlfilename)
-			sys.exit(-7)
+        # An error page is about 2.5KB, a proper XML file is circa 50KB.
+        if os.path.getsize(self.xmlfilename) < 5000:
+            print 'Language', self.language, 'was not found.\nExiting...'
+            os.remove(self.xmlfilename)
+            sys.exit(-7)
 
-		self.gnome_release_data = self.parse_gnome_xml_file(self.xmlfilename)
+        self.gnome_release_data = self.parse_gnome_xml_file(self.xmlfilename)
 
-	def parse_gnome_xml_file(self, filename):
-		try:
-			xmlfile = open(filename, 'r')
-			xmlfile.close
-		except OSError:
-			print 'Could not open file ', filename, '. Aborting...'
-			sys.exit(-1)
-	
-		contents = ''.join(xmlfile.readlines())
-		
-		mytarget = GNOMEI18nTarget()
-		parser = etree.XMLParser(target = mytarget)
-		result = etree.XML(contents, parser)
-	
-		return mytarget.get_stats()
+    def parse_gnome_xml_file(self, filename):
+        try:
+            xmlfile = open(filename, 'r')
+            xmlfile.close
+        except OSError:
+            print 'Could not open file ', filename, '. Aborting...'
+            sys.exit(-1)
+    
+        contents = ''.join(xmlfile.readlines())
+        
+        mytarget = GNOMEI18nTarget()
+        parser = etree.XMLParser(target = mytarget)
+        result = etree.XML(contents, parser)
+    
+        return mytarget.get_stats()
 
-	def usage(self):
-		print PROGNAME, 'a tool that helps manage translation files from a VCS'
-		print 'Usage:', PROGNAME, '<action> <options>'
-	        print """Available actions:
+    def usage(self):
+        print PROGNAME, 'a tool that helps manage translation files from a VCS'
+        print 'Usage:', PROGNAME, '<action> <options>'
+            print """Available actions:
  config      Initial configuration (stored in ~/.gnomemanagevcsrc)
- 	-l LL  --language LL       language code per ISO 639
- 	       --languagefull LANG language name (as in "British English", Greek, etc)
-	       --podir PODIR       directory with .po files for uploading
- 	-r REL --release REL       release REL (such as 'gnome-2-26')
+    -l LL  --language LL       language code per ISO 639
+           --languagefull LANG language name (as in "British English", Greek, etc)
+           --podir PODIR       directory with .po files for uploading
+    -r REL --release REL       release REL (such as 'gnome-2-26')
                --vcsdir VCSDIR     specify the local directory with the GNOME GIT clones           
- 	-u USR --username USR      username USR (corresponds to SVN/GIT GNOME account)
+    -u USR --username USR      username USR (corresponds to SVN/GIT GNOME account)
 
  status      Show current status
 
  vcsmanage   Local repository management (Module filtering applies)
-		--clean             clears up the downloaded files (USE WITH CARE, WIPES REPOSITORIES)
-		--clone		    clone repositories
-		--eponymous 	    make repositories eponymous (sets to new 'username')
-		--gitverbose 	    show progress when cloning (git 1.5 ignores this option).
-	 -r     --reset             reset each repository (git reset --hard origin/master)
-		--trim		    erases the working copy
-	        --update-vcs        update local repositories (runs git pull --rebase on each)
+        --clean             clears up the downloaded files (USE WITH CARE, WIPES REPOSITORIES)
+        --clone         clone repositories
+        --eponymous         make repositories eponymous (sets to new 'username')
+        --gitverbose        show progress when cloning (git 1.5 ignores this option).
+     -r     --reset             reset each repository (git reset --hard origin/master)
+        --trim          erases the working copy
+            --update-vcs        update local repositories (runs git pull --rebase on each)
 
  poget       Retrieve a selection of PO files (Module filtering applies)
-		--clean             clears up the downloaded files (USE WITH CARE, WIPES PO FILES)
+        --clean             clears up the downloaded files (USE WITH CARE, WIPES PO FILES)
 
  pocommit    Commit and push the translation work to the repositories
-	        --commit            commit changes in repositories
-	 -d     --dry-run           do not really checkout/commit
+            --commit            commit changes in repositories
+     -d     --dry-run           do not really checkout/commit
 
  Module filtering
-	 -c CAT --category CAT      i18n category name CAT (such as 'desktop')
-	 -m MOD --module MOD        i18n module name MOD (such as 'gnome-games')
-	 -t     --transtype TYPE    optionally specify translation type, either ui or doc
+     -c CAT --category CAT      i18n category name CAT (such as 'desktop')
+     -m MOD --module MOD        i18n module name MOD (such as 'gnome-games')
+     -t     --transtype TYPE    optionally specify translation type, either ui or doc
 
  Common options
-	 -d     --dry-run           do not really perform the action
-	 -h     --help              this craft
-	 -v     --verbose           show verbose output
+     -d     --dry-run           do not really perform the action
+     -h     --help              this craft
+     -v     --verbose           show verbose output
 """
 
-	def download_hook(self, blocks_transferred, block_size, file_size):
-	        """ A download hook to provide some feedback when downloading """
-	        if blocks_transferred == 0:
-	                if file_size > 0:
-       		                 if self.opt_verbose:
-                	                print 'Downloading', file_size, 'bytes: ',
-               		else:
-                        	if self.opt_verbose:
-                                	print 'Downloading: ',
-		if self.opt_verbose:
-        		sys.stdout.write('#')
-        		sys.stdout.flush()
+    def download_hook(self, blocks_transferred, block_size, file_size):
+            """ A download hook to provide some feedback when downloading """
+            if blocks_transferred == 0:
+                    if file_size > 0:
+                             if self.opt_verbose:
+                                    print 'Downloading', file_size, 'bytes: ',
+                    else:
+                            if self.opt_verbose:
+                                    print 'Downloading: ',
+        if self.opt_verbose:
+                sys.stdout.write('#')
+                sys.stdout.flush()
 
 
-	def download_file(self, url):
-	        """ Downloads a file provided a URL. Returns the filename. """
-	        """ Borks on failure """
-	        localfilename = 'managevcs-' + self.language + '-' + self.release + '.' + url.split('/')[-1]
-	        if not os.path.isfile(localfilename) or os.path.getsize(localfilename) <= 0:
-	                if self.opt_verbose:
-				print 'Will save as', localfilename
-	                        print 'Downloading ', url, '...'
-	                try:
-				if os.path.exists(localfilename):
-					if os.path.getsize(localfilename) <= 0:
-						os.remove(localfilename)
-	                        urllib.urlretrieve(url, localfilename, self.download_hook)
-	                except IOError, (errno, strerror):
-	                        print 'I/O error(%s): %s' % (errno, strerror)
-	                        sys.exit(-1)
-	                except OSError, err:
-	                        print 'Unexpected error: ', err
-	                        sys.exit(-1)
-			if self.opt_verbose:
-	                	print ' done.'
-	        else:
-	                if self.opt_verbose:
-        	                print 'Using cached file for ', url
-	        return localfilename
+    def download_file(self, url):
+            """ Downloads a file provided a URL. Returns the filename. """
+            """ Borks on failure """
+            localfilename = 'managevcs-' + self.language + '-' + self.release + '.' + url.split('/')[-1]
+            if not os.path.isfile(localfilename) or os.path.getsize(localfilename) <= 0:
+                    if self.opt_verbose:
+                print 'Will save as', localfilename
+                            print 'Downloading ', url, '...'
+                    try:
+                if os.path.exists(localfilename):
+                    if os.path.getsize(localfilename) <= 0:
+                        os.remove(localfilename)
+                            urllib.urlretrieve(url, localfilename, self.download_hook)
+                    except IOError, (errno, strerror):
+                            print 'I/O error(%s): %s' % (errno, strerror)
+                            sys.exit(-1)
+                    except OSError, err:
+                            print 'Unexpected error: ', err
+                            sys.exit(-1)
+            if self.opt_verbose:
+                        print ' done.'
+            else:
+                    if self.opt_verbose:
+                            print 'Using cached file for ', url
+            return localfilename
 
-	def writeconfig(self):
-		config = ConfigParser.ConfigParser()
+    def writeconfig(self):
+        config = ConfigParser.ConfigParser()
 
-		try:
-			config.add_section('Intltool-Manage-VCS')
-			if self.language:
-				config.set('Intltool-Manage-VCS', 'language', self.language)
-			if self.languagefull:
-				config.set('Intltool-Manage-VCS', 'languagefull', self.languagefull)
-			if self.release:
-				config.set('Intltool-Manage-VCS', 'release', self.release)
-			if self.username:
-				config.set('Intltool-Manage-VCS', 'username', self.username)
-			if self.dir_vcs: 
-				if self.dir_vcs[-1] != '/':
-					self.dir_vcs += '/';
-				config.set('Intltool-Manage-VCS', 'vcsdir', self.dir_vcs)
-			if self.dir_po:
-				if self.dir_po[-1] != '/':
-					self.dir_po += '/';
-				config.set('Intltool-Manage-VCS', 'podir', self.dir_po)
-		except ConfigParser.NoOptionError, err:
-			print 'Error:', err
-			sys.exit(10)
+        try:
+            config.add_section('Intltool-Manage-VCS')
+            if self.language:
+                config.set('Intltool-Manage-VCS', 'language', self.language)
+            if self.languagefull:
+                config.set('Intltool-Manage-VCS', 'languagefull', self.languagefull)
+            if self.release:
+                config.set('Intltool-Manage-VCS', 'release', self.release)
+            if self.username:
+                config.set('Intltool-Manage-VCS', 'username', self.username)
+            if self.dir_vcs: 
+                if self.dir_vcs[-1] != '/':
+                    self.dir_vcs += '/';
+                config.set('Intltool-Manage-VCS', 'vcsdir', self.dir_vcs)
+            if self.dir_po:
+                if self.dir_po[-1] != '/':
+                    self.dir_po += '/';
+                config.set('Intltool-Manage-VCS', 'podir', self.dir_po)
+        except ConfigParser.NoOptionError, err:
+            print 'Error:', err
+            sys.exit(10)
 
-		configfile = open(self.file_CONFIG, 'wb')
-		config.write(configfile)
-		configfile.close()
+        configfile = open(self.file_CONFIG, 'wb')
+        config.write(configfile)
+        configfile.close()
 
-	def readconfig(self):
-		config = ConfigParser.ConfigParser()
-		if os.path.exists(self.file_CONFIG):
-			config.read(self.file_CONFIG)
+    def readconfig(self):
+        config = ConfigParser.ConfigParser()
+        if os.path.exists(self.file_CONFIG):
+            config.read(self.file_CONFIG)
 
-			try:
-				self.dir_vcs = config.get('Intltool-Manage-VCS', 'vcsdir')
-				self.language = config.get('Intltool-Manage-VCS', 'language')
-				self.languagefull = config.get('Intltool-Manage-VCS', 'languagefull')
-				self.release = config.get('Intltool-Manage-VCS', 'release')
-				self.username = config.get('Intltool-Manage-VCS', 'username')
-				self.dir_po = config.get('Intltool-Manage-VCS', 'podir')
-			except ConfigParser.NoOptionError, err:
-				if not self.action_config:	
-					print 'Error:', err
-					print 'Please use --config and the relevant argument to set the missing setting'
-					print 'Exiting...'
-					sys.exit(10)
+            try:
+                self.dir_vcs = config.get('Intltool-Manage-VCS', 'vcsdir')
+                self.language = config.get('Intltool-Manage-VCS', 'language')
+                self.languagefull = config.get('Intltool-Manage-VCS', 'languagefull')
+                self.release = config.get('Intltool-Manage-VCS', 'release')
+                self.username = config.get('Intltool-Manage-VCS', 'username')
+                self.dir_po = config.get('Intltool-Manage-VCS', 'podir')
+            except ConfigParser.NoOptionError, err:
+                if not self.action_config:  
+                    print 'Error:', err
+                    print 'Please use --config and the relevant argument to set the missing setting'
+                    print 'Exiting...'
+                    sys.exit(10)
 
 start = GNOMEI18nManage(sys.argv)
