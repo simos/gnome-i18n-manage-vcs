@@ -223,7 +223,7 @@ class GNOMEI18nManage:
             print 
             print 'Exiting...'
             sys.exit(11)
-        
+
         self.readconfig()
 
         if self.action_config:
@@ -244,9 +244,9 @@ class GNOMEI18nManage:
 
         try:
             opts, args = getopt.getopt(cmdargs, 'hl:r:su:v', [
-                'help', 'language=', 'languagefull=', 
-                'podir=', 'release=', 'status', 
-                'vcsdir=', 'verbose', 'username=' ])
+                'help', 'language=',
+                'release=', 'status',
+                'verbose', 'username=' ])
         except getopt.GetoptError, err:
             print 'Error: %s' % str(err)
             self.usage()
@@ -258,51 +258,37 @@ class GNOMEI18nManage:
                 sys.exit()
             if o in ('-l', '--language'):
                 self.language = a
-            if o in ('--languagefull'):
-                    self.languagefull = a
-            if o in ('--podir'):
-                self.dir_po = a
             if o in ('-r', '--release'):
                 self.release = a
-                if o in ('-s', '--status'):
-                    self.opt_status = True
-                if o in ('-u', '--username'):
-                    self.username = a
-                if o in ('--vcsdir'):
-                    self.dir_vcs = a
-                if o in ('-v', '--verbose'):
-                    self.opt_verbose = True
+            if o in ('-s', '--status'):
+                self.opt_status = True
+            if o in ('-u', '--username'):
+                self.username = a
+            if o in ('-v', '--verbose'):
+                self.opt_verbose = True
 
         if not os.path.exists(self.conf_dir):
             if self.opt_verbose:
                 print 'Could not find the configuration file: %s' % self.conf_dir
                 print 'Creating new configuration file...'
 
-        # Make sure we have directories for po and vcs files.
-        self.createreleasedirectory()
-
-        if self.language == '' or self.languagefull == '' or self.release == '' or \
-           self.username == '' or self.dir_po == '' or self.dir_vcs == '':
+        if self.language == '' or self.release == '' or self.username == '':
             print 'Error: Required parameter(s) missing for configuration'
             print 'When using the "config" action for the first time, please specify all of the'
             print 'following.'
             print ' 1. --language LL, language (ISO 639), i.e. en_GB, el, fr, es'
-            print ' 2. --languagefull LANGUAGE, i.e. "British English", Greek, French, Spanish'
             print ' 3. --release REL, GNOME release, i.e. gnome-2-26, gnome-2-28'
             print ' 4. --username USER, username (your git username, or "anonymous" for anonymous clones'
-            print ' 5. --vcsdir VCSDIR, full path to where the repositories shall reside in'
-            print ' 6. --podir PODIR, full path to directoty with PO files for processing'
             print
-            print 'Received: language =', self.language, '- languagefull =', self.languagefull, '- release =', self.release
-            print 'Received: username =', self.username, '- vcsdir =', self.dir_vcs, '- podir =', self.dir_po
+            print 'Received: language =', self.language, '- release =', self.release
+            print 'Received: username =', self.username
             print
             print 'Run this script without parameters for more help.'
             print 'Exiting...'
             sys.exit(-1)
-            print
-            print 'Run this script without parameters for more help.'
-            print 'Exiting...'
-            sys.exit(-1)
+
+        # Make sure we have directories for po and vcs files.
+        self.createreleasedirectory(self.release)
 
         for dir in [self.dir_po, self.dir_vcs]:
             if not os.path.exists(dir):
@@ -312,6 +298,7 @@ class GNOMEI18nManage:
                 sys.exit(-1)
 
         self.writeconfig()
+
         if self.opt_verbose:
             print 'Use "config --status" to view the current configuration settings.'
 
@@ -790,10 +777,7 @@ class GNOMEI18nManage:
         print """Available actions:
  config      Initial configuration (stored in ~/.gnomemanagevcsrc)
     -l LL  --language LL       language code per ISO 639
-           --languagefull LANG language name (as in "British English", Greek, etc)
-           --podir PODIR       directory with .po files for uploading
     -r REL --release REL       release REL (such as 'gnome-2-26')
-               --vcsdir VCSDIR     specify the local directory with the GNOME GIT clones           
     -u USR --username USR      username USR (corresponds to SVN/GIT GNOME account)
 
  status      Show current status
@@ -886,20 +870,14 @@ class GNOMEI18nManage:
             config.add_section('Intltool-Manage-VCS')
             if self.language:
                 config.set('Intltool-Manage-VCS', 'language', self.language)
-            if self.languagefull:
-                config.set('Intltool-Manage-VCS', 'languagefull', self.languagefull)
             if self.release:
                 config.set('Intltool-Manage-VCS', 'release', self.release)
             if self.username:
                 config.set('Intltool-Manage-VCS', 'username', self.username)
-            if self.dir_vcs: 
-                if self.dir_vcs[-1] != '/':
-                    self.dir_vcs += '/';
-                config.set('Intltool-Manage-VCS', 'vcsdir', self.dir_vcs)
-            if self.dir_po:
-                if self.dir_po[-1] != '/':
-                    self.dir_po += '/';
-                config.set('Intltool-Manage-VCS', 'podir', self.dir_po)
+            self.dir_vcs = os.path.join(self.data_dir, self.release, 'vcs/')
+            config.set('Intltool-Manage-VCS', 'vcsdir', self.dir_vcs)
+            self.dir_po = os.path.join(self.data_dir, self.release, 'po/')
+            config.set('Intltool-Manage-VCS', 'podir', self.dir_po)
         except ConfigParser.NoOptionError, err:
             print 'Error:', err
             sys.exit(10)
