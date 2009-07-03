@@ -87,45 +87,45 @@ class GNOMEI18nTarget:
                 pass
             self.push_flag(tag)
 
-        def end(self, tag):
-            if tag not in self.message_states:
-                if tag == 'domain':
-                    self.resources.append({'id': tag, 'type': self.domain, 
-                        'pofile': self.pofile, 'vcspath' : self.vcspath }) 
-                    self.domain = self.pofile = self.vcspath = None
-                elif tag == 'document':
-                    self.resources.append({'id': tag, 'type': self.document, 
-                        'pofile': self.pofile, 'vcspath' : self.vcspath }) 
-                    self.document = self.pofile = self.vcspath = None
-                elif tag == 'module':
-                    self.module[self.module_id] = { 'branch': self.module_branch, 'resource': self.resources }
-                    self.module_id = self.module_branch = None
-                    self.resources = []
-                elif tag == 'category':
-                    self.category[self.category_id] = self.module
-                    self.module = {}
-                    self.category_id = None
-                elif tag == 'stats':
-                    self.stats = { 'language': self.stats_language, 'release': self.stats_release, 
-                            'categories': self.category } 
-                    self.category = {}
-                    self.stats_release = self.stats_language = None
-                elif tag not in ['pofile', 'svnpath']:
-                    # Should not be reached
-                            #print self.tabs[:self.level], ('end %s' % tag)
-                    pass
-                self.pop_flag(tag)
+    def end(self, tag):
+        if tag not in self.message_states:
+            if tag == 'domain':
+                self.resources.append({'id': tag, 'type': self.domain, 
+                    'pofile': self.pofile, 'vcspath' : self.vcspath }) 
+                self.domain = self.pofile = self.vcspath = None
+            elif tag == 'document':
+                self.resources.append({'id': tag, 'type': self.document, 
+                    'pofile': self.pofile, 'vcspath' : self.vcspath }) 
+                self.document = self.pofile = self.vcspath = None
+            elif tag == 'module':
+                self.module[self.module_id] = { 'branch': self.module_branch, 'resource': self.resources }
+                self.module_id = self.module_branch = None
+                self.resources = []
+            elif tag == 'category':
+                self.category[self.category_id] = self.module
+                self.module = {}
+                self.category_id = None
+            elif tag == 'stats':
+                self.stats = { 'language': self.stats_language, 'release': self.stats_release, 
+                        'categories': self.category } 
+                self.category = {}
+                self.stats_release = self.stats_language = None
+            elif tag not in ['pofile', 'svnpath']:
+                # Should not be reached
+                        #print self.tabs[:self.level], ('end %s' % tag)
+                pass
+            self.pop_flag(tag)
 
-        def data(self, data):
-            if not data.isspace() and not data.isdigit():
-                if self.flags[-1] == 'pofile':
-                    self.pofile = data
-                elif self.flags[-1] == 'svnpath':
-                    self.vcspath = data
-                else:
-                    # Should not be reached
-                            #print self.tabs[:self.level], ('data %r' % data)
-                    pass
+    def data(self, data):
+        if not data.isspace() and not data.isdigit():
+            if self.flags[-1] == 'pofile':
+                self.pofile = data
+            elif self.flags[-1] == 'svnpath':
+                self.vcspath = data
+            else:
+                # Should not be reached
+                        #print self.tabs[:self.level], ('data %r' % data)
+                pass
 
     def comment(self, text):
         pass
@@ -203,9 +203,9 @@ class GNOMEI18nManage:
         self.conf_file = os.path.join(self.conf_dir, '%s.conf' % PROGNAME)
 
         if argv[1] == 'config':
-                    self.action_config = True
+                self.action_config = True
         elif argv[1] == 'status':
-                    self.action_status = True
+                self.action_status = True
         elif argv[1] == 'vcsmanage':
             self.action_vcsmanage = True
         elif argv[1] == 'poget':
@@ -277,6 +277,9 @@ class GNOMEI18nManage:
             if self.opt_verbose:
                 print 'Could not find the configuration file: %s' % self.conf_dir
                 print 'Creating new configuration file...'
+
+        # Make sure we have directories for po and vcs files.
+        self.createreleasedirectory()
 
         if self.language == '' or self.languagefull == '' or self.release == '' or \
            self.username == '' or self.dir_po == '' or self.dir_vcs == '':
