@@ -392,20 +392,13 @@ class GNOMEI18nManage:
                         print '          VCSPath:', resource['vcspath']
                     pofilename = resource['pofile'].rsplit('/')[-1]
 
-                    if self.opt_verbose:
-                        CMD2 = 'wget http://l10n.gnome.org' + resource['pofile'] + \
-                            ' -O ' + self.dir_po + pofilename
-                    else:
-                        CMD2 = 'wget --quiet http://l10n.gnome.org' + resource['pofile'] + \
-                            ' -O ' + self.dir_po + pofilename
+                    src_po = 'http://l10n.gnome.org' + resource['pofile']
+                    dest_po = self.dir_po + pofilename
+                    self.download_file(src_po, dest_po)
 
-                    if self.opt_dryrun and self.opt_verbose:
-                        print '            CMD:', CMD2
-                    elif not self.opt_dryrun:
-                        if self.opt_verbose:
-                            print '\t\tTouching current time at', self.dir_po + self.file_START
-                        os.system('touch ' + self.dir_po + self.file_START)
-                        os.system(CMD2)
+                    print '\t\tTouching current time at', self.dir_po + self.file_START
+                    os.system('touch ' + self.dir_po + self.file_START)
+                    os.system(CMD2)
 
     def process_vcsmanage(self, cmdargs):
         try:
