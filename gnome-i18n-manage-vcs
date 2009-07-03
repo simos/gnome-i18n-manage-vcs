@@ -602,7 +602,6 @@ class GNOMEI18nManage:
             self.apply_translation_changes()
 
     def show_status(self):
-        import epdb; epdb.st()
         print 'Language: %(langfull)s - [%(lang)s]\tRelease: %(rel)s\tUsername: %(u)s' % \
                 { 'langfull': self.languagefull, 'lang': self.language, 
                   'rel': self.release, 'u': self.username }
