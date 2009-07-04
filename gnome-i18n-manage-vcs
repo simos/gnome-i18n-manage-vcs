@@ -803,7 +803,8 @@ class GNOMEI18nManage:
     -r REL --release REL       release REL (such as 'gnome-2-26')
     -u USR --username USR      username USR (corresponds to SVN/GIT GNOME account)
 
- status      Show current status
+ status      Show current status for a previously configured release.
+    -r REL --release REL       release REL (such as 'gnome-2-26')
 
  vcsmanage   Local repository management (Module filtering applies)
         --clean             clears up the downloaded files (USE WITH CARE, WIPES REPOSITORIES)
