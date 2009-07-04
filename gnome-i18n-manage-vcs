@@ -307,7 +307,8 @@ class GNOMEI18nManage:
 
     def process_poget(self, cmdargs):
         try:
-            opts, args = getopt.getopt(cmdargs, 'c:dhqst:u:', ['category=', 'clean', 
+            opts, args = getopt.getopt(cmdargs, 'r:c:dhqst:u:', [
+                'release=', 'category=', 'clean', 
                 'commit', 'dryrun', 'dry-run', 
                 'help', 'module=', 'transtype=', 'verbose' ])
         except getopt.GetoptError, err:
@@ -316,6 +317,8 @@ class GNOMEI18nManage:
             sys.exit(0)
 
         for o, a in opts:
+            if o in ('-r', '--release'):
+                self.release = a
             if o in ('--clean'):
                 self.opt_clean = True
             if o in ('-c', '--category'):
@@ -337,6 +340,15 @@ class GNOMEI18nManage:
                     sys.exit(-4)
             if o in ('-v', '--verbose'):
                 self.opt_verbose = True
+
+        if not os.path.isdir(os.path.join(self.data_dir, self.release)):
+            print "The release you've entered has not been configured yet."
+            print "Please provide the name of a valid release or make sure to"
+            print " configure it first."
+            sys.exit(0)
+
+        self.dir_po, self.dir_vcs = self.get_release_config(self.release)
+
 
         if self.opt_clean:
             podircontents = dircache.listdir(self.dir_po)
@@ -807,16 +819,17 @@ class GNOMEI18nManage:
     -r REL --release REL       release REL (such as 'gnome-2-26')
 
  vcsmanage   Local repository management (Module filtering applies)
-        --clean             clears up the downloaded files (USE WITH CARE, WIPES REPOSITORIES)
-        --clone         clone repositories
-        --eponymous         make repositories eponymous (sets to new 'username')
-        --gitverbose        show progress when cloning (git 1.5 ignores this option).
-     -r     --reset             reset each repository (git reset --hard origin/master)
-        --trim          erases the working copy
-            --update-vcs        update local repositories (runs git pull --rebase on each)
+            --clean             clears up the downloaded files (USE WITH CARE, WIPES REPOSITORIES)
+            --clone             clone repositories
+            --eponymous         make repositories eponymous (sets to new 'username')
+            --gitverbose        show progress when cloning (git 1.5 ignores this option).
+    -r      --reset             reset each repository (git reset --hard origin/master)
+    --trim                      erases the working copy
+    --update-vcs                update local repositories (runs git pull --rebase on each)
 
  poget       Retrieve a selection of PO files (Module filtering applies)
-        --clean             clears up the downloaded files (USE WITH CARE, WIPES PO FILES)
+    -r REL  --release REL       release REL (such as 'gnome-2-26')
+            --clean             clears up the downloaded files (USE WITH CARE, WIPES PO FILES)
 
  pocommit    Commit and push the translation work to the repositories
             --commit            commit changes in repositories
