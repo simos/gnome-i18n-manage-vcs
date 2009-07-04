@@ -303,7 +303,7 @@ class GNOMEI18nManage:
             print 'Use "config --status" to view the current configuration settings.'
 
     def process_status(self, cmdargs):
-        self.show_status()
+        self.show_status(cmdargs)
 
     def process_poget(self, cmdargs):
         try:
@@ -359,7 +359,7 @@ class GNOMEI18nManage:
         language = self.gnome_release_data['language']
 
         # Create a new directory for this release
-        podir = self.createreleasedirectory(release)
+        self.createreleasedirectory(release)
 
         print 'Release  :', release
         print 'Language :', language
@@ -571,8 +571,8 @@ class GNOMEI18nManage:
 
     def process_pocommit(self, cmdargs):
         try:
-                opts, args = getopt.getopt(cmdargs, 'ac:dhl:qr:st:u:', [ 'commit', 'dryrun', 'dry-run', 
-                        'help', 'verbose' ])
+            opts, args = getopt.getopt(cmdargs, 'ac:dhl:qr:st:u:', [ 'commit', 'dryrun', 'dry-run', 
+                    'help', 'verbose' ])
         except getopt.GetoptError, err:
             print 'Error', err
             self.usage()
@@ -591,9 +591,32 @@ class GNOMEI18nManage:
         if self.opt_commit:
             self.apply_translation_changes()
 
-    def show_status(self):
-        print 'Language: %(langfull)s - [%(lang)s]\tRelease: %(rel)s\tUsername: %(u)s' % \
-                { 'langfull': self.languagefull, 'lang': self.language, 
+    def show_status(self, cmdargs):
+        if not cmdargs:
+            self.usage()
+            sys.exit(0)
+
+        try:
+            opts, args = getopt.getopt(cmdargs, 'r:', ['release=',])
+        except getopt.GetoptError, err:
+            print 'Error: %s' % str(err)
+            self.usage()
+            sys.exit(0)
+
+        for o, a in opts:
+            if o in ('-r', '--release'):
+                self.release = a
+
+        if not os.path.isdir(os.path.join(self.data_dir, self.release)):
+            print "The release you've entered has not been configured yet."
+            print "Please provide the name of a valid release or make sure to"
+            print " configure it first."
+            sys.exit(0)
+
+        self.dir_po, self.dir_vcs = self.get_release_config(self.release)
+
+        print 'Language: [%(lang)s]\tRelease: %(rel)s\tUsername: %(u)s' % \
+                { 'lang': self.language, 
                   'rel': self.release, 'u': self.username }
         print
         print 'VCS Directory:', self.dir_vcs
@@ -854,14 +877,14 @@ class GNOMEI18nManage:
             os.mkdir(os.path.join(self.data_dir, release))
 
         # Now a directory to store the PO files...
-        if not os.path.isdir(os.path.join(self.data_dir, release, 'po')):
-            os.mkdir(os.path.join(self.data_dir, release, 'po'))
+        self.dir_po = os.path.join(self.data_dir, release, 'po')
+        if not os.path.isdir(self.dir_po):
+            os.mkdir(self.dir_po)
 
         # ... and a directory to store the VCS files from a clone
-        if not os.path.isdir(os.path.join(self.data_dir, release, 'vcs')):
-            os.mkdir(os.path.join(self.data_dir, release, 'vcs'))
-
-        return os.path.join(self.data_dir, release, 'po')
+        self.dir_vcs = os.path.join(self.data_dir, release, 'vcs')
+        if not os.path.isdir(self.dir_vcs):
+            os.mkdir(self.dir_vcs)
 
     def writeconfig(self):
         config = ConfigParser.ConfigParser()
@@ -870,14 +893,12 @@ class GNOMEI18nManage:
             config.add_section('Intltool-Manage-VCS')
             if self.language:
                 config.set('Intltool-Manage-VCS', 'language', self.language)
-            if self.release:
-                config.set('Intltool-Manage-VCS', 'release', self.release)
             if self.username:
                 config.set('Intltool-Manage-VCS', 'username', self.username)
-            self.dir_vcs = os.path.join(self.data_dir, self.release, 'vcs/')
-            config.set('Intltool-Manage-VCS', 'vcsdir', self.dir_vcs)
-            self.dir_po = os.path.join(self.data_dir, self.release, 'po/')
-            config.set('Intltool-Manage-VCS', 'podir', self.dir_po)
+            #self.dir_vcs = os.path.join(self.data_dir, self.release, 'vcs/')
+            #config.set('Intltool-Manage-VCS', 'vcsdir', self.dir_vcs)
+            #self.dir_po = os.path.join(self.data_dir, self.release, 'po/')
+            #config.set('Intltool-Manage-VCS', 'podir', self.dir_po)
         except ConfigParser.NoOptionError, err:
             print 'Error:', err
             sys.exit(10)
@@ -899,12 +920,10 @@ class GNOMEI18nManage:
             config.read(self.conf_file)
 
             try:
-                self.dir_vcs = config.get('Intltool-Manage-VCS', 'vcsdir')
                 self.language = config.get('Intltool-Manage-VCS', 'language')
-                self.languagefull = config.get('Intltool-Manage-VCS', 'languagefull')
-                self.release = config.get('Intltool-Manage-VCS', 'release')
                 self.username = config.get('Intltool-Manage-VCS', 'username')
-                self.dir_po = config.get('Intltool-Manage-VCS', 'podir')
+                #self.dir_po = os.path.join(self.data_dir, self.release, 'po/')
+                #self.dir_vcs = os.path.join(self.data_dir, self.release, 'vcs/')
             except ConfigParser.NoOptionError, err:
                 if not self.action_config:
                     print 'Error:', str(err)
@@ -914,5 +933,10 @@ class GNOMEI18nManage:
         else:
             print "The configuration file %s was not found!" % self.conf_file
             sys.exit(10)
+    def get_release_config(self, release):
+        dir_po = os.path.join(self.data_dir, release, 'po/')
+        dir_vcs = os.path.join(self.data_dir, release, 'vcs/')
+
+        return dir_po, dir_vcs
 
 start = GNOMEI18nManage(sys.argv)
