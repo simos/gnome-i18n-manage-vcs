@@ -513,21 +513,6 @@ class GNOMEI18nManage:
             self.apply_translation_changes()
 
     def show_status(self, cmdargs):
-        if not cmdargs:
-            self.usage()
-            sys.exit(0)
-
-        try:
-            opts, args = getopt.getopt(cmdargs, 'r:', ['release=',])
-        except getopt.GetoptError, err:
-            print 'Error: %s' % str(err)
-            self.usage()
-            sys.exit(0)
-
-        for o, a in opts:
-            if o in ('-r', '--release'):
-                self.release = a
-
         self.dir_po, self.dir_vcs = self.get_release_config(self.release)
 
         if not os.path.isdir(self.dir_vcs):
@@ -727,8 +712,7 @@ class GNOMEI18nManage:
             --username USER     username USR (corresponds to SVN/GIT GNOME account)
     -l                          list the configuration options                
 
- status      Show current status for a previously configured release.
-    -r REL --release REL       release REL (such as 'gnome-2-26')
+ status      Show current status for a previously configured release (no options)
 
  vcsmanage   Local repository management (Module filtering applies)
             --clean             clears up the downloaded files (USE WITH CARE, WIPES REPOSITORIES)
