@@ -31,3 +31,7 @@ C. Status
 
 Use
     ./gnome-i18n-manage-vcs status
+
+D. Iterator for filtering
+
+
