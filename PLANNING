@@ -1,0 +1,23 @@
+WORKFLOW
+
+A. Initial configuration (required before doing any sort of work).
+Use to also show the current configuration
+	-> ./gnome-i18n-manage-vcs config -l
+
+        -> ./gnome-i18n-manage-vcs config --language el --languagefull Greek --username simos
+
+The required configuration include
+    1. Language code (such as 'el')
+    2. Language name (such as 'Greek') (TODO: use ISO 639 tables).
+    3. VCS username (add either your real git username, or put 'anonymous'
+        for those tasks such as creating a repository tarball.
+
+B. Filtering options
+
+The user can perform actions to modules by filtering according to
+    1. release name (such as 'gnome-2-26')
+    2. module category (such as 'desktop')
+    3. module name (such as 'eog')
+    4. translation type (such as 'ui' or 'doc' for UI and Documentation respectively)
+
+C. 
