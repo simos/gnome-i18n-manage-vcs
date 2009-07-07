@@ -17,22 +17,22 @@
 # Author  : Simos Xenitellis <simos@gnome.org>, 2009
 # Version : 0.9
 
-import dircache     # dircache.listdir()
-import os       # os.system(), os.remove(), os.path.gmtime(), os.getenv()
-import getopt       # getopt.getopt()
-import shutil       # shutil.rmtree()
-import sys      # sys.argv, sys.exit()
-import urllib       # urllib.urlretrieve()
-import ConfigParser # ConfigParser()
+import dircache                 # dircache.listdir()
+import os                       # os.system(), os.remove(), os.path.gmtime(), os.getenv()
+import getopt                   # getopt.getopt()
+import shutil                   # shutil.rmtree()
+import sys                      # sys.argv, sys.exit()
+import urllib                   # urllib.urlretrieve()
+import ConfigParser             # ConfigParser()
 from datetime import datetime   # datetime()
 
-from xdg.BaseDirectory import *
+from xdg.BaseDirectory import * # XDG Python support, ...
 
 try:
-    from lxml import etree  # etree.XMLParser(), etree.XML()
+    from lxml import etree      # etree.XMLParser(), etree.XML()
 except ImportError, err:
     print 'Import error:', err
-    print 'This script requires to have the python-lxml package installed'
+    print 'This script requires to have the "python-lxml" package installed'
     print 'Please install the package python-lxml and try again.\nExiting...'
     sys.exit(-10)
 
@@ -40,7 +40,7 @@ PROGNAME='gnome-i18n-manage-vcs'
 
 PACKAGE_NAME    = 'GNOME I18n Manage VCS'
 PACKAGE_VERSION = '0.9'
-PACKAGE_AUTHORS = ['Simos Xenitellis <simos@gnome.org>']
+PACKAGE_AUTHORS = ['Simos Xenitellis <simos@gnome.org>', 'Og Maciel <ogmaciel@gnome.org>']
 PACKAGE_COPYRIGHT = 'Copyright 2009 Simos Xenitellis'
 
 class GNOMEI18nTarget:
@@ -221,7 +221,8 @@ class GNOMEI18nManage:
             print ' * poget        retrieval of PO files'
             print ' * pocommit     commiting PO files'
             print 
-            print 'Exiting...'
+            print 'Run the script without option to get help.'
+            print 'Now exiting...'
             sys.exit(11)
 
         self.readconfig()
