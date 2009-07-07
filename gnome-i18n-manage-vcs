@@ -52,10 +52,13 @@ class GNOMEI18nManage:
     username = ''
 
     # Options used for filtering
-    release = ''
     category = ''
     module = ''
+    release = ''
     transtype = ''              # either 'doc' or 'ui' ('document' or 'domain')
+
+    filter_short = 'c:m:r:t:'
+    filter_long = ['category=', 'module=', 'release=', 'transtype=']
 
     gnome_release_data = []
 
@@ -225,39 +228,27 @@ class GNOMEI18nManage:
 
     def process_poget(self, cmdargs):
         try:
-            opts, args = getopt.getopt(cmdargs, 'r:c:dhqst:u:', [
-                'release=', 'category=', 'clean', 
-                'commit', 'dryrun', 'dry-run', 
-                'help', 'module=', 'transtype=', 'verbose' ])
+            opts, args = getopt.getopt(cmdargs, 'dhqsu:' + self.filter_short, [
+                'clean', 'commit', 'dryrun', 'dry-run', 
+                'help', 'verbose', self.filter_long ])
         except getopt.GetoptError, err:
             print 'Error', err
             self.usage()
             sys.exit(0)
 
         for o, a in opts:
-            if o in ('-r', '--release'):
-                self.release = a
             if o in ('--clean'):
                 self.opt_clean = True
-            if o in ('-c', '--category'):
-                self.category = a
             if o in ('--dryrun', '--dry-run'):
                 self.opt_dryrun = True
             if o in ('-h', '--help'):
                 self.usage()
                 sys.exit()
-            if o in ('-m', '--module'):
-                self.module = a
-            if o in ('--transtype'):
-                if a in ['ui', 'domain']:
-                    self.transtype = 'domain'
-                elif a in ['doc', 'document']:
-                    self.transtype = 'document'
-                else:
-                    print 'ERROR: Invalid transtype, expected on of ui, doc, domain, document'
-                    sys.exit(-4)
             if o in ('-v', '--verbose'):
                 self.opt_verbose = True
+            self.apply_filtering(o, a)
+
+        self.verify_filtering()
 
         if not os.path.isdir(os.path.join(self.data_dir, self.release)):
             print "The release you've entered has not been configured yet."
@@ -325,12 +316,14 @@ class GNOMEI18nManage:
             sys.exit(0)
 
         try:
-                opts, args = getopt.getopt(cmdargs, 'ac:dhl:qr:st:u:', ['category=', 'clean', 
-                        'commit', 'clone', 'dryrun', 'dry-run', 'eponymous',
-                        'help', 'module=', 'no-checkout',
-                        'reset', 'gitverbose', 'release', 'transtype=', 'trim',
-                        'verbose', 'username=', 'update-vcs', 'updatevcs', 
-                        'vcsupdate', 'vcs-update' ])
+                this_filter = ['clean', 
+                'commit', 'clone', 'dryrun', 'dry-run', 'eponymous',
+                'help', 'no-checkout',
+                'reset', 'gitverbose', 'trim',
+                'verbose', 'username=', 'update-vcs', 'updatevcs', 
+                'vcsupdate', 'vcs-update'];
+                this_filter.extend(self.filter_long)
+                opts, args = getopt.getopt(cmdargs, 'adhqsu:' + self.filter_short, this_filter) 
         except getopt.GetoptError, err:
             print 'Error', err
             self.usage()
@@ -338,8 +331,6 @@ class GNOMEI18nManage:
         for o, a in opts:
             if o in ('--clean'):
                 self.opt_clean = True
-            if o in ('-c', '--category'):
-                self.category = a
             if o in ('--clone'):
                 self.opt_clone = True
             if o in ('--dryrun', '--dry-run'):
@@ -351,30 +342,21 @@ class GNOMEI18nManage:
             if o in ('-h', '--help'):
                 self.usage()
                 sys.exit()
-            if o in ('-m', '--module'):
-                self.module = a
-            if o in ('-r', '--release'):
-                self.release = a
             if o in ('--no-checkout'):
                 self.opt_nocheckout = True
             if o in ('--reset'):
                 self.opt_vcsreset = True
-            if o in ('--transtype'):
-                if a in ['ui', 'domain']:
-                    self.transtype = 'domain'
-                elif a in ['doc', 'document']:
-                    self.transtype = 'document'
-                else:
-                    print 'ERROR: Invalid transtype, expected on of ui, doc, domain, document'
-                    sys.exit(-4)
-                if o in ('--trim'):
-                    self.opt_trim = True
-                if o in ('-v', '--verbose'):
-                    self.opt_verbose = True
-                if o in ('-u', '--username'):
-                    self.username = a
+            if o in ('--trim'):
+                self.opt_trim = True
+            if o in ('-v', '--verbose'):
+                self.opt_verbose = True
+            if o in ('-u', '--username'):
+                self.username = a
             if o in ('--update-vcs', '--updatevcs', '--vcs-update', '--vcsupdate'):
                 self.opt_vcsupdate = True
+            self.apply_filtering(o, a)
+
+        self.verify_filtering()
 
         if self.opt_vcsreset:
             self.reset_hard(self.dir_vcs)
@@ -507,8 +489,8 @@ class GNOMEI18nManage:
 
     def process_pocommit(self, cmdargs):
         try:
-            opts, args = getopt.getopt(cmdargs, 'ac:dhl:qr:st:u:', [ 'commit', 'dryrun', 'dry-run', 
-                    'help', 'verbose' ])
+            opts, args = getopt.getopt(cmdargs, 'adhqsu:' + self.filter_short, [ 'commit', 'dryrun', 'dry-run', 
+                    'help', 'verbose', self.filter_long ])
         except getopt.GetoptError, err:
             print 'Error', err
             self.usage()
@@ -523,6 +505,9 @@ class GNOMEI18nManage:
                 sys.exit()
             if o in ('-v', '--verbose'):
                 self.opt_verbose = True
+            self.apply_filtering(o, a)
+
+        self.verify_filtering()
 
         if self.opt_commit:
             self.apply_translation_changes()
@@ -766,7 +751,7 @@ class GNOMEI18nManage:
      -c CAT --category CAT      i18n category name CAT (such as 'desktop')
      -m MOD --module MOD        i18n module name MOD (such as 'gnome-games')
      -r REL --release REL       GNOME release (such as 'gnome-2-26')
-     -t     --transtype TYPE    optionally specify translation type, either ui or doc
+     -t TYP --transtype TYPE    optionally specify translation type, either ui or doc
 
  Common options
      -d     --dry-run           do not really perform the action
@@ -885,5 +870,26 @@ class GNOMEI18nManage:
         dir_vcs = os.path.join(self.data_dir, 'vcs/')
 
         return dir_po, dir_vcs
+
+    def apply_filtering(self, o, a):
+        if o in ('-c', '--category'):
+            self.category = a
+        if o in ('-m', '--module'):
+            self.module = a
+        if o in ('-r', '--release'):
+            self.release = a
+        if o in ('--transtype'):
+            if a in ['ui', 'domain']:
+                self.transtype = 'domain'
+            elif a in ['doc', 'document']:
+                self.transtype = 'document'
+            else:
+                print 'ERROR: Invalid transtype, expected on of ui, doc, domain, document'
+                sys.exit(-4)
+
+    def verify_filtering(self):
+        if self.category == '' and self.module == '' and self.release == '' and self.transtype == '':
+            print "Error: It is required to specify at least one of release, category, module or translation type."
+            sys.exit(8)
 
 start = GNOMEI18nManage(sys.argv)
