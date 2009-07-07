@@ -145,7 +145,7 @@ class GNOMEI18nManage:
         elif self.action_pocommit:
             self.process_pocommit(argv[2:])
 
-        print "Cloning action has just completed."
+        print "Action has just completed."
         sys.exit(0)
 
     def process_config(self, cmdargs):
@@ -528,13 +528,13 @@ class GNOMEI18nManage:
             if o in ('-r', '--release'):
                 self.release = a
 
-        if not os.path.isdir(os.path.join(self.data_dir, self.release)):
+        self.dir_po, self.dir_vcs = self.get_release_config(self.release)
+
+        if not os.path.isdir(self.dir_vcs):
             print "The release you've entered has not been configured yet."
             print "Please provide the name of a valid release or make sure to"
             print " configure it first."
             sys.exit(0)
-
-        self.dir_po, self.dir_vcs = self.get_release_config(self.release)
 
         print 'Language: [%(lang)s]\tRelease: %(rel)s\tUsername: %(u)s' % \
                 { 'lang': self.language, 
