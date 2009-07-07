@@ -144,17 +144,17 @@ class GNOMEI18nTarget:
         return self.stats
 
 class GNOMEI18nManage:
+    # Required configuration options
     language = ''
     languagefull = ''
     username = ''
-    release = ''
 
+    # Options used for filtering
+    release = ''
     category = ''
     module = ''
-    transtype = ''      # either 'doc' or 'ui' ('document' or 'domain')
+    transtype = ''              # either 'doc' or 'ui' ('document' or 'domain')
 
-    xmlurl = ''
-    xmlfilename = ''
     gnome_release_data = []
 
     dir_po = ''
@@ -225,10 +225,12 @@ class GNOMEI18nManage:
             print 'Now exiting...'
             sys.exit(11)
 
-        self.readconfig()
-
         if self.action_config:
             self.process_config(argv[2:])
+            sys.exit(0)
+
+        self.readconfig()
+
         if self.action_status:
             self.process_status(argv[2:])
         elif self.action_vcsmanage:
@@ -238,53 +240,66 @@ class GNOMEI18nManage:
         elif self.action_pocommit:
             self.process_pocommit(argv[2:])
 
+        print "Should not be reached"
+        sys.exit(12)
+
     def process_config(self, cmdargs):
         if not cmdargs:
-            self.usage()
+            print 'Please specify an option. Try --help for more help.'
             sys.exit(0)
 
         try:
-            opts, args = getopt.getopt(cmdargs, 'hl:r:su:v', [
+            opts, args = getopt.getopt(cmdargs, 'hlsv', [
                 'help', 'language=',
-                'release=', 'status',
+                'languagefull=', 'status',
                 'verbose', 'username=' ])
         except getopt.GetoptError, err:
             print 'Error: %s' % str(err)
             self.usage()
             sys.exit(0)
 
+        listconfig = False
         for o, a in opts:
             if o in ('-h', '--help'):
                 self.usage()
                 sys.exit()
-            if o in ('-l', '--language'):
+            if o in ('--language'):
                 self.language = a
-            if o in ('-r', '--release'):
-                self.release = a
+            if o in ('--languagefull'):
+                self.languagefull = a
+            if o in ('-l'):
+                listconfig = True
             if o in ('-s', '--status'):
                 self.opt_status = True
-            if o in ('-u', '--username'):
+            if o in ('--username'):
                 self.username = a
             if o in ('-v', '--verbose'):
                 self.opt_verbose = True
 
         if not os.path.exists(self.conf_dir):
-            if self.opt_verbose:
-                print 'Could not find the configuration file: %s' % self.conf_dir
-                print 'Creating new configuration file...'
+            print 'Could not find a configuration file: %s' % self.conf_dir
+            print 'Creating new configuration file...'
+        elif listconfig:
+            self.readconfig()
+            print 'Configuration (%s)' % self.conf_dir
+            print
+            print 'Language code =', self.language
+            print 'Full language name =', self.languagefull
+            print 'Username =', self.username
+            sys.exit(0)
 
-        if self.language == '' or self.release == '' or self.username == '':
+        if self.language == '' or self.languagefull == '' or self.username == '':
             print 'Error: Required parameter(s) missing for configuration'
             print 'When using the "config" action for the first time, please specify all of the'
             print 'following.'
-            print ' 1. --language LL, language (ISO 639), i.e. en_GB, el, fr, es'
-            print ' 3. --release REL, GNOME release, i.e. gnome-2-26, gnome-2-28'
-            print ' 4. --username USER, username (your git username, or "anonymous" for anonymous clones'
+            print ' 1. --language LANG, language (ISO 639), i.e. en_GB, el, fr, es'
+            print ' 3. --languagefull LANGFULL, full language name, i.e. Spanish, Brazilian Portuguese'
+            print ' 4. --username USER, username (your git username, or "anonymous" for anonymous clones)'
             print
-            print 'Received: language =', self.language, '- release =', self.release
+            print 'Received: language =', self.language, '- full language name =', self.languagefull
             print 'Received: username =', self.username
             print
-            print 'Run this script without parameters for more help.'
+            print 'Use --help for  more help.'
             print 'Exiting...'
             sys.exit(-1)
 
@@ -350,7 +365,6 @@ class GNOMEI18nManage:
 
         self.dir_po, self.dir_vcs = self.get_release_config(self.release)
 
-
         if self.opt_clean:
             podircontents = dircache.listdir(self.dir_po)
             podircontents = podircontents[:]
@@ -404,6 +418,10 @@ class GNOMEI18nManage:
                     os.system(CMD2)
 
     def process_vcsmanage(self, cmdargs):
+        if not cmdargs:
+            print 'Please specify an option. Try --help for more help.'
+            sys.exit(0)
+
         try:
                 opts, args = getopt.getopt(cmdargs, 'ac:dhl:qr:st:u:', ['category=', 'clean', 
                         'commit', 'clone', 'dryrun', 'dry-run', 'eponymous',
@@ -780,8 +798,8 @@ class GNOMEI18nManage:
     def parse_gnome_release_data(self):
         filename = 'managevcs-%s-%s.xml' % (self.language, self.release)
         filepath = os.path.join(os.curdir, filename)
-        self.xmlurl = 'http://l10n.gnome.org/languages/' + self.language + '/' + self.release + '/xml'
-        self.download_file(self.xmlurl, filepath)
+        xmlurl = 'http://l10n.gnome.org/languages/' + self.language + '/' + self.release + '/xml'
+        self.download_file(xmlurl, filepath)
 
         # An error page is about 2.5KB, a proper XML file is circa 50KB.
         if os.path.getsize(filepath) < 5000:
@@ -811,10 +829,11 @@ class GNOMEI18nManage:
         print PROGNAME, 'a tool that helps manage translation files from a VCS'
         print 'Usage:', PROGNAME, '<action> <options>'
         print """Available actions:
- config      Initial configuration (stored in ~/.gnomemanagevcsrc)
-    -l LL  --language LL       language code per ISO 639
-    -r REL --release REL       release REL (such as 'gnome-2-26')
-    -u USR --username USR      username USR (corresponds to SVN/GIT GNOME account)
+ config     Initial configuration (stored in ~/.gnomemanagevcsrc)
+            --language LANG     language code per ISO 639
+            --languagefull LANGFULL  full language name (such as 'Brazilian Portuguese')
+            --username USER     username USR (corresponds to SVN/GIT GNOME account)
+    -l                          list the configuration options                
 
  status      Show current status for a previously configured release.
     -r REL --release REL       release REL (such as 'gnome-2-26')
@@ -905,15 +924,17 @@ class GNOMEI18nManage:
         config = ConfigParser.ConfigParser()
 
         try:
-            config.add_section('Intltool-Manage-VCS')
+            config.add_section('GNOME-I18n-Manage-VCS')
             if self.language:
-                config.set('Intltool-Manage-VCS', 'language', self.language)
+                config.set('GNOME-I18n-Manage-VCS', 'language', self.language)
+            if self.languagefull:
+                config.set('GNOME-I18n-Manage-VCS', 'languagefull', self.languagefull)
             if self.username:
-                config.set('Intltool-Manage-VCS', 'username', self.username)
+                config.set('GNOME-I18n-Manage-VCS', 'username', self.username)
             #self.dir_vcs = os.path.join(self.data_dir, self.release, 'vcs/')
-            #config.set('Intltool-Manage-VCS', 'vcsdir', self.dir_vcs)
+            #config.set('GNOME-I18n-Manage-VCS', 'vcsdir', self.dir_vcs)
             #self.dir_po = os.path.join(self.data_dir, self.release, 'po/')
-            #config.set('Intltool-Manage-VCS', 'podir', self.dir_po)
+            #config.set('GNOME-I18n-Manage-VCS', 'podir', self.dir_po)
         except ConfigParser.NoOptionError, err:
             print 'Error:', err
             sys.exit(10)
@@ -935,8 +956,9 @@ class GNOMEI18nManage:
             config.read(self.conf_file)
 
             try:
-                self.language = config.get('Intltool-Manage-VCS', 'language')
-                self.username = config.get('Intltool-Manage-VCS', 'username')
+                self.language = config.get('GNOME-I18n-Manage-VCS', 'language')
+                self.languagefull = config.get('GNOME-I18n-Manage-VCS', 'languagefull')
+                self.username = config.get('GNOME-I18n-Manage-VCS', 'username')
                 #self.dir_po = os.path.join(self.data_dir, self.release, 'po/')
                 #self.dir_vcs = os.path.join(self.data_dir, self.release, 'vcs/')
             except ConfigParser.NoOptionError, err:
@@ -945,9 +967,11 @@ class GNOMEI18nManage:
                     print 'Please use --config and the relevant argument to set the missing setting'
                     print 'Exiting...'
                     sys.exit(10)
-        else:
-            print "The configuration file %s was not found!" % self.conf_file
-            sys.exit(10)
+        #else:
+        #    print "The configuration file %s was not found." % self.conf_file
+        #    print "It is required to perform the initial configuration, before issuing commands."
+        #    sys.exit(10)
+
     def get_release_config(self, release):
         dir_po = os.path.join(self.data_dir, release, 'po/')
         dir_vcs = os.path.join(self.data_dir, release, 'vcs/')
