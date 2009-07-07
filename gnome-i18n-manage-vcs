@@ -28,6 +28,8 @@ from datetime import datetime   # datetime()
 
 from xdg.BaseDirectory import * # XDG Python support, ...
 
+import GNOMEI18nTarget
+
 try:
     from lxml import etree      # etree.XMLParser(), etree.XML()
 except ImportError, err:
@@ -42,106 +44,6 @@ PACKAGE_NAME    = 'GNOME I18n Manage VCS'
 PACKAGE_VERSION = '0.9'
 PACKAGE_AUTHORS = ['Simos Xenitellis <simos@gnome.org>', 'Og Maciel <ogmaciel@gnome.org>']
 PACKAGE_COPYRIGHT = 'Copyright 2009 Simos Xenitellis'
-
-class GNOMEI18nTarget:
-    def __init__(self):
-        self.message_states = ['translated', 'untranslated', 'fuzzy', 'docfuzzy', 'docuntranslated', 'doctranslated']
-        self.flags = []
-
-        self.stats_release = None
-        self.stats_language = None
-
-        self.category_id = None
-
-        self.module_id = None
-        self.module_branch = None       
-
-        self.domain = None
-        self.document = None
-
-        self.pofile = None
-        self.vcspath = None
-
-        self.resources = []
-        self.module = {}
-        self.category = {}
-        self.stats = {}
-
-    def start(self, tag, attrib):
-        if tag not in self.message_states:
-            if tag == 'domain':
-                self.domain = attrib['id']
-            elif tag == 'document':
-                self.document = attrib['id']
-            elif tag == 'module':
-                self.module_id = attrib['id']
-                self.module_branch = attrib['branch']
-            elif tag == 'category':
-                self.category_id = attrib['id']
-            elif tag == 'stats':
-                self.stats_release = attrib['release']
-                self.stats_language = attrib['language']
-            elif tag not in ['pofile', 'svnpath']:
-                # Should not be reached
-                #print self.tabs[:self.level], ('start %s %s' % (tag, attrib))
-                pass
-            self.push_flag(tag)
-
-    def end(self, tag):
-        if tag not in self.message_states:
-            if tag == 'domain':
-                self.resources.append({'id': tag, 'type': self.domain, 
-                    'pofile': self.pofile, 'vcspath' : self.vcspath }) 
-                self.domain = self.pofile = self.vcspath = None
-            elif tag == 'document':
-                self.resources.append({'id': tag, 'type': self.document, 
-                    'pofile': self.pofile, 'vcspath' : self.vcspath }) 
-                self.document = self.pofile = self.vcspath = None
-            elif tag == 'module':
-                self.module[self.module_id] = { 'branch': self.module_branch, 'resource': self.resources }
-                self.module_id = self.module_branch = None
-                self.resources = []
-            elif tag == 'category':
-                self.category[self.category_id] = self.module
-                self.module = {}
-                self.category_id = None
-            elif tag == 'stats':
-                self.stats = { 'language': self.stats_language, 'release': self.stats_release, 
-                        'categories': self.category } 
-                self.category = {}
-                self.stats_release = self.stats_language = None
-            elif tag not in ['pofile', 'svnpath']:
-                # Should not be reached
-                        #print self.tabs[:self.level], ('end %s' % tag)
-                pass
-            self.pop_flag(tag)
-
-    def data(self, data):
-        if not data.isspace() and not data.isdigit():
-            if self.flags[-1] == 'pofile':
-                self.pofile = data
-            elif self.flags[-1] == 'svnpath':
-                self.vcspath = data
-            else:
-                # Should not be reached
-                        #print self.tabs[:self.level], ('data %r' % data)
-                pass
-
-    def comment(self, text):
-        pass
-
-    def close(self):
-        return True
-
-    def push_flag(self, tag):
-        self.flags.append(tag)
-
-    def pop_flag(self, tag):
-        if self.flags.pop() != tag:
-            print 'ERROR, did not pop', tag
-
-    def get_stats(self):
-        return self.stats
 
 class GNOMEI18nManage:
     # Required configuration options
@@ -240,8 +142,8 @@ class GNOMEI18nManage:
         elif self.action_pocommit:
             self.process_pocommit(argv[2:])
 
-        print "Should not be reached"
-        sys.exit(12)
+        print "Cloning action has just completed."
+        sys.exit(0)
 
     def process_config(self, cmdargs):
         if not cmdargs:
@@ -426,7 +328,7 @@ class GNOMEI18nManage:
                 opts, args = getopt.getopt(cmdargs, 'ac:dhl:qr:st:u:', ['category=', 'clean', 
                         'commit', 'clone', 'dryrun', 'dry-run', 'eponymous',
                         'help', 'module=', 'no-checkout',
-                        'reset', 'gitverbose', 'transtype=', 'trim',
+                        'reset', 'gitverbose', 'release', 'transtype=', 'trim',
                         'verbose', 'username=', 'update-vcs', 'updatevcs', 
                         'vcsupdate', 'vcs-update' ])
         except getopt.GetoptError, err:
@@ -451,6 +353,8 @@ class GNOMEI18nManage:
                 sys.exit()
             if o in ('-m', '--module'):
                 self.module = a
+            if o in ('-r', '--release'):
+                self.release = a
             if o in ('--no-checkout'):
                 self.opt_nocheckout = True
             if o in ('--reset'):
@@ -479,6 +383,7 @@ class GNOMEI18nManage:
             self.parse_gnome_release_data()
             release = self.gnome_release_data['release']
             language = self.gnome_release_data['language']
+            self.dir_po, self.dir_vcs = self.get_release_config(self.release)
             print 'Release  :', release
             print 'Language :', language
             for cat in self.gnome_release_data['categories'].keys():
@@ -520,12 +425,12 @@ class GNOMEI18nManage:
                             print '            CMD:', CMD1
                         elif not self.opt_dryrun:
                             if os.path.exists(self.dir_vcs + mod):
-                                pass
                                 #print 'Cached repository for', mod, 'exists. Skipping cloning...'
+                                pass
                             else:
                                 print 'Retrieving module', mod, '...'
                                 if self.opt_verbose: 
-                                    print 
+                                    print
                                     sys.stdout.flush()
                                 os.system(CMD1)
                                 if not self.opt_verbose:
@@ -796,6 +701,7 @@ class GNOMEI18nManage:
             self.process_stats('execute')
 
     def parse_gnome_release_data(self):
+        self.release = 'gnome-2-26'
         filename = 'managevcs-%s-%s.xml' % (self.language, self.release)
         filepath = os.path.join(os.curdir, filename)
         xmlurl = 'http://l10n.gnome.org/languages/' + self.language + '/' + self.release + '/xml'
@@ -804,6 +710,7 @@ class GNOMEI18nManage:
         # An error page is about 2.5KB, a proper XML file is circa 50KB.
         if os.path.getsize(filepath) < 5000:
             print 'Language', self.language, 'was not found.\nExiting...'
+            print xmlurl
             os.remove(filepath)
             sys.exit(-7)
 
@@ -819,7 +726,7 @@ class GNOMEI18nManage:
     
         contents = ''.join(xmlfile.readlines())
         
-        mytarget = GNOMEI18nTarget()
+        mytarget = GNOMEI18nTarget.GNOMEI18nTarget()
         parser = etree.XMLParser(target = mytarget)
         result = etree.XML(contents, parser)
     
@@ -829,7 +736,7 @@ class GNOMEI18nManage:
         print PROGNAME, 'a tool that helps manage translation files from a VCS'
         print 'Usage:', PROGNAME, '<action> <options>'
         print """Available actions:
- config     Initial configuration (stored in ~/.gnomemanagevcsrc)
+ config     Initial configuration
             --language LANG     language code per ISO 639
             --languagefull LANGFULL  full language name (such as 'Brazilian Portuguese')
             --username USER     username USR (corresponds to SVN/GIT GNOME account)
@@ -858,6 +765,7 @@ class GNOMEI18nManage:
  Module filtering
      -c CAT --category CAT      i18n category name CAT (such as 'desktop')
      -m MOD --module MOD        i18n module name MOD (such as 'gnome-games')
+     -r REL --release REL       GNOME release (such as 'gnome-2-26')
      -t     --transtype TYPE    optionally specify translation type, either ui or doc
 
  Common options
@@ -973,8 +881,8 @@ class GNOMEI18nManage:
         #    sys.exit(10)
 
     def get_release_config(self, release):
-        dir_po = os.path.join(self.data_dir, release, 'po/')
-        dir_vcs = os.path.join(self.data_dir, release, 'vcs/')
+        dir_po = os.path.join(self.data_dir, 'po/')
+        dir_vcs = os.path.join(self.data_dir, 'vcs/')
 
         return dir_po, dir_vcs
 
