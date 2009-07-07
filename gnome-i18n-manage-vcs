@@ -521,9 +521,9 @@ class GNOMEI18nManage:
             print " configure it first."
             sys.exit(0)
 
-        print 'Language: [%(lang)s]\tRelease: %(rel)s\tUsername: %(u)s' % \
+        print 'Language code: [%(lang)s]\tLanguage: %(langfull)s\tUsername: %(u)s' % \
                 { 'lang': self.language, 
-                  'rel': self.release, 'u': self.username }
+                  'langfull': self.languagefull, 'u': self.username }
         print
         print 'VCS Directory:', self.dir_vcs
         print 'PO  Directory:', self.dir_po
