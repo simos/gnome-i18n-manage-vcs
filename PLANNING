@@ -6,7 +6,7 @@ Use to also show the current configuration
 
         -> ./gnome-i18n-manage-vcs config --language el --languagefull Greek --username simos
 
-The required configuration include
+The required configuration includes
     1. Language code (such as 'el')
     2. Language name (such as 'Greek') (TODO: use ISO 639 tables).
     3. VCS username (add either your real git username, or put 'anonymous'
@@ -22,4 +22,12 @@ The user can perform actions to modules by filtering according to
 
 It is required to specify some filtering; there is no default filter.
 
-C. 
+-c xyz    --category xyz
+-m xyz    --module xyz
+-r xyz    --release xyz
+-t xyz    --transtype xyz
+
+C. Status
+
+Use
+    ./gnome-i18n-manage-vcs status
