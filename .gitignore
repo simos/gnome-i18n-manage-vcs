@@ -1,3 +1,6 @@
 VCS/
 PO/
 *.zip
+*.xml
+*.pyc
+*.swp
