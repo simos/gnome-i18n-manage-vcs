@@ -20,4 +20,6 @@ The user can perform actions to modules by filtering according to
     3. module name (such as 'eog')
     4. translation type (such as 'ui' or 'doc' for UI and Documentation respectively)
 
+It is required to specify some filtering; there is no default filter.
+
 C. 
