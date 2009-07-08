@@ -89,7 +89,7 @@ class GNOMEI18nManage:
 
     def __init__(self, argv):
         if not argv[1:]:
-            self.usage()
+            self.usage(['intro', 'actions', 'help'])
             sys.exit(0)
 
         # Establish where the configuration file should be stored as per the
@@ -118,17 +118,9 @@ class GNOMEI18nManage:
         elif argv[1] == 'pocommit':
             self.action_pocommit = True
         else:
-            print 'Please specify action'
-            print 'Available actions are:'
-            print ' * config       configures the local settings'
-            print ' * status       show detailed status'
-            print ' * vcsmanage    repository management tasks'
-            print ' * poget        retrieval of PO files'
-            print ' * pocommit     commiting PO files'
-            print 
-            print 'Run the script without option to get help.'
-            print 'Now exiting...'
-            sys.exit(11)
+            self.usage(['intro', 'actions', 'config', 'status', 'vcsmanage', 
+                        'poget', 'commit', 'filtering', 'common'])
+            sys.exit(0)
 
         if self.action_config:
             self.process_config(argv[2:])
@@ -150,7 +142,7 @@ class GNOMEI18nManage:
 
     def process_config(self, cmdargs):
         if not cmdargs:
-            print 'Please specify an option. Try --help for more help.'
+            self.usage(['intro', 'help_config'])
             sys.exit(0)
 
         try:
@@ -160,13 +152,14 @@ class GNOMEI18nManage:
                 'verbose', 'username=' ])
         except getopt.GetoptError, err:
             print 'Error: %s' % str(err)
-            self.usage()
+            self.usage(['intro', 'actions', 'config'])
             sys.exit(0)
 
         listconfig = False
         for o, a in opts:
             if o in ('-h', '--help'):
-                self.usage()
+                self.usage(['intro', 'actions', 'config', 'status', 'vcsmanage', 
+                            'poget', 'commit', 'filtering', 'common'])
                 sys.exit()
             if o in ('--language'):
                 self.language = a
@@ -233,7 +226,7 @@ class GNOMEI18nManage:
                 'help', 'verbose', self.filter_long ])
         except getopt.GetoptError, err:
             print 'Error', err
-            self.usage()
+            self.usage(['intro', 'poget', 'filtering', 'common'])
             sys.exit(0)
 
         for o, a in opts:
@@ -242,7 +235,7 @@ class GNOMEI18nManage:
             if o in ('--dryrun', '--dry-run'):
                 self.opt_dryrun = True
             if o in ('-h', '--help'):
-                self.usage()
+                self.usage(['intro', 'poget', 'filtering', 'common'])
                 sys.exit()
             if o in ('-v', '--verbose'):
                 self.opt_verbose = True
@@ -326,7 +319,7 @@ class GNOMEI18nManage:
                 opts, args = getopt.getopt(cmdargs, 'adhqsu:' + self.filter_short, this_filter) 
         except getopt.GetoptError, err:
             print 'Error', err
-            self.usage()
+            self.usage(['intro', 'vcsmanage', 'filtering', 'common'])
             sys.exit(0)
         for o, a in opts:
             if o in ('--clean'):
@@ -340,7 +333,7 @@ class GNOMEI18nManage:
             if o in ('--gitverbose'):
                 self.opt_gitverbose = True
             if o in ('-h', '--help'):
-                self.usage()
+                self.usage(['intro', 'vcsmanage', 'filtering', 'common'])
                 sys.exit()
             if o in ('--no-checkout'):
                 self.opt_nocheckout = True
@@ -493,7 +486,7 @@ class GNOMEI18nManage:
                     'help', 'verbose', self.filter_long ])
         except getopt.GetoptError, err:
             print 'Error', err
-            self.usage()
+            self.usage(['intro', 'commit', 'filtering', 'common'])
             sys.exit(0)
         for o, a in opts:
             if o in ('--commit'):
@@ -501,7 +494,7 @@ class GNOMEI18nManage:
             if o in ('--dryrun', '--dry-run'):
                 self.opt_dryrun = True
             if o in ('-h', '--help'):
-                self.usage()
+                self.usage(['intro', 'commit', 'filtering', 'common'])
                 sys.exit()
             if o in ('-v', '--verbose'):
                 self.opt_verbose = True
@@ -702,46 +695,79 @@ class GNOMEI18nManage:
     
         return mytarget.get_stats()
 
-    def usage(self):
-        print PROGNAME, 'a tool that helps manage translation files from a VCS'
-        print 'Usage:', PROGNAME, '<action> <options>'
-        print """Available actions:
- config     Initial configuration
-            --language LANG     language code per ISO 639
-            --languagefull LANGFULL  full language name (such as 'Brazilian Portuguese')
-            --username USER     username USR (corresponds to SVN/GIT GNOME account)
-    -l                          list the configuration options                
-
- status      Show current status for a previously configured release (no options)
-
- vcsmanage   Local repository management (Module filtering applies)
-            --clean             clears up the downloaded files (USE WITH CARE, WIPES REPOSITORIES)
-            --clone             clone repositories
-            --eponymous         make repositories eponymous (sets to new 'username')
-            --gitverbose        show progress when cloning (git 1.5 ignores this option).
-    -r      --reset             reset each repository (git reset --hard origin/master)
-    --trim                      erases the working copy
-    --update-vcs                update local repositories (runs git pull --rebase on each)
-
- poget       Retrieve a selection of PO files (Module filtering applies)
-    -r REL  --release REL       release REL (such as 'gnome-2-26')
-            --clean             clears up the downloaded files (USE WITH CARE, WIPES PO FILES)
-
- pocommit    Commit and push the translation work to the repositories
-            --commit            commit changes in repositories
-     -d     --dry-run           do not really checkout/commit
-
- Module filtering
-     -c CAT --category CAT      i18n category name CAT (such as 'desktop')
-     -m MOD --module MOD        i18n module name MOD (such as 'gnome-games')
-     -r REL --release REL       GNOME release (such as 'gnome-2-26')
-     -t TYP --transtype TYPE    optionally specify translation type, either ui or doc
-
- Common options
-     -d     --dry-run           do not really perform the action
-     -h     --help              this craft
-     -v     --verbose           show verbose output
+    def usage(self, helpIDs):
+        # Help text message
+        help_intro = """gnome-i18n-manage-vcs, a tool that helps manage translation files from a VCS
+Usage: gnome-i18n-manage-vcs <action> <options>
 """
+
+        help_actions = """Please specify action. Available actions are:
+\t* config       configures the local settings
+\t* status       show detailed status of local files
+\t* vcsmanage    repository management tasks
+\t* poget        retrieval of PO files
+\t* pocommit     commiting PO files
+"""
+
+        help_config = """config     Initial configuration
+\t\t--language LANG     language code per ISO 639
+\t\t--languagefull LANGFULL  full language name (such as 'Brazilian Portuguese')
+\t\t--username USER     username USR (corresponds to SVN/GIT GNOME account)
+\t-l                          list the configuration options                
+"""
+
+        help_status = """status      Show current status for a previously configured release.
+"""
+
+        help_vcsmanage = """vcsmanage   Local repository management (Module filtering applies)
+\t\t--clean         clears up the downloaded files (USE WITH CARE, WIPES REPOSITORIES)
+\t\t--clone         clone repositories
+\t\t--eponymous     make repositories eponymous (sets to new 'username')
+\t\t--gitverbose    show progress when cloning (git 1.5 ignores this option).
+\t\t--reset         reset each repository (git reset --hard origin/master)
+\t\t--trim          erases the working copy
+\t\t--update-vcs    update local repositories (runs git pull --rebase on each)
+"""
+
+        help_poget = """poget       Retrieve a selection of PO files (Module filtering required)
+\t\t--clean         clears up the downloaded files (USE WITH CARE, WIPES PO FILES)
+"""
+
+        help_commit = """commit    Commit and push the translation work to the repositories
+\t\t--commit        commit changes in repositories
+\t\t--dry-run       do not really checkout/commit
+"""
+
+        help_filtering = """Module filtering  (applies to 'vcsmanage', 'poget', 'pocommit')
+\t-c CAT  --category CAT      i18n category name CAT (such as 'desktop')
+\t-m MODU --module MOD        i18n module name MOD (such as 'gnome-games')
+\t-r REL  --release REL       GNOME release (such as 'gnome-2-26')
+\t-t TYPE --transtype TYPE    optionally specify translation type, either ui or doc
+"""
+
+        help_common = """Common options
+\t-d      --dry-run           do not really perform the action
+\t-h      --help              this craft
+\t-v      --verbose           show verbose output
+"""
+
+        help_help = """Invoke with --help for full help options."""
+
+        help_messages = {
+            'intro': help_intro,
+            'actions': help_actions,
+            'config': help_config,
+            'status': help_status,
+            'vcsmanage': help_vcsmanage,
+            'poget': help_poget,
+            'commit': help_commit,
+            'filtering': help_filtering,
+            'common': help_common,
+            'help': help_help
+        }
+
+        for id in helpIDs:
+            print help_messages[id]
 
     def download_hook(self, blocks_transferred, block_size, file_size):
         """ A download hook to provide some feedback when downloading """
