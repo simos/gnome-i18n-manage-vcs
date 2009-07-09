@@ -57,6 +57,9 @@ class GNOMEI18nManage:
     release = ''
     transtype = ''              # either 'doc' or 'ui' ('document' or 'domain')
 
+    common_short = 'dhv'
+    common_long = ['dry-run', 'help', 'verbose']
+
     filter_short = 'c:m:r:t:'
     filter_long = ['category=', 'module=', 'release=', 'transtype=']
 
@@ -72,7 +75,7 @@ class GNOMEI18nManage:
     action_status = False
     action_vcsmanage = False
     action_poget = False
-    action_pocommit = False
+    action_commit = False
 
     opt_commit = False
     opt_clone = False
@@ -115,8 +118,8 @@ class GNOMEI18nManage:
             self.action_vcsmanage = True
         elif argv[1] == 'poget':
             self.action_poget = True
-        elif argv[1] == 'pocommit':
-            self.action_pocommit = True
+        elif argv[1] == 'commit':
+            self.action_commit = True
         else:
             self.usage(['intro', 'actions', 'config', 'status', 'vcsmanage', 
                         'poget', 'commit', 'filtering', 'common'])
@@ -134,22 +137,21 @@ class GNOMEI18nManage:
             self.process_vcsmanage(argv[2:])
         elif self.action_poget:
             self.process_poget(argv[2:])
-        elif self.action_pocommit:
-            self.process_pocommit(argv[2:])
+        elif self.action_commit:
+            self.process_commit(argv[2:])
 
         print "Action has just completed."
         sys.exit(0)
 
     def process_config(self, cmdargs):
         if not cmdargs:
-            self.usage(['intro', 'help_config'])
+            self.usage(['intro', 'config'])
             sys.exit(0)
 
-        try:
-            opts, args = getopt.getopt(cmdargs, 'hlsv', [
-                'help', 'language=',
-                'languagefull=', 'status',
-                'verbose', 'username=' ])
+        try: 
+            this_filter = [ 'language=', 'languagefull=', 'status', 'username=' ];
+            this_filter.extend(self.common_long)
+            opts, args = getopt.getopt(cmdargs, 'ls' + self.common_short, this_filter)
         except getopt.GetoptError, err:
             print 'Error: %s' % str(err)
             self.usage(['intro', 'actions', 'config'])
@@ -221,9 +223,11 @@ class GNOMEI18nManage:
 
     def process_poget(self, cmdargs):
         try:
-            opts, args = getopt.getopt(cmdargs, 'dhqsu:' + self.filter_short, [
-                'clean', 'commit', 'dryrun', 'dry-run', 
-                'help', 'verbose', self.filter_long ])
+            this_filter_short = self.common_short + self.filter_short
+            this_filter_long = ['cleanall']
+            this_filter_long.extend(self.common_long)
+            this_filter_long.extend(self.filter_long)
+            opts, args = getopt.getopt(cmdargs, this_filter_short, this_filter_long)
         except getopt.GetoptError, err:
             print 'Error', err
             self.usage(['intro', 'poget', 'filtering', 'common'])
@@ -309,14 +313,16 @@ class GNOMEI18nManage:
             sys.exit(0)
 
         try:
-                this_filter = ['clean', 
-                'commit', 'clone', 'dryrun', 'dry-run', 'eponymous',
-                'help', 'no-checkout',
+                this_filter_short = self.common_short + self.filter_short
+                this_filter_long = ['clean', 
+                'commit', 'clone', 'eponymous',
+                'no-checkout',
                 'reset', 'gitverbose', 'trim',
-                'verbose', 'username=', 'update-vcs', 'updatevcs', 
+                'username=', 'update-vcs', 'updatevcs', 
                 'vcsupdate', 'vcs-update'];
+                this_filter.extend(self.common_long)
                 this_filter.extend(self.filter_long)
-                opts, args = getopt.getopt(cmdargs, 'adhqsu:' + self.filter_short, this_filter) 
+                opts, args = getopt.getopt(cmdargs, this_filter_short, this_filter_long) 
         except getopt.GetoptError, err:
             print 'Error', err
             self.usage(['intro', 'vcsmanage', 'filtering', 'common'])
@@ -355,12 +361,13 @@ class GNOMEI18nManage:
             self.reset_hard(self.dir_vcs)
 
         if self.opt_clone:
-            self.parse_gnome_release_data()
-            release = self.gnome_release_data['release']
-            language = self.gnome_release_data['language']
-            self.dir_po, self.dir_vcs = self.get_release_config(self.release)
+            #self.parse_gnome_release_data()
+            #release = self.gnome_release_data['release']
+            #language = self.gnome_release_data['language']
+            #self.dir_po, self.dir_vcs = self.get_release_config(self.release)
             print 'Release  :', release
             print 'Language :', language
+            print 'Directories:', self.dir_po, self.dir_vcs
             for cat in self.gnome_release_data['categories'].keys():
                 if self.category != '' and cat != self.category:
                     continue
@@ -480,7 +487,7 @@ class GNOMEI18nManage:
                     os.system(cmd_changedir + ';' + cmd_pull)
                 counter = counter + 1
 
-    def process_pocommit(self, cmdargs):
+    def process_commit(self, cmdargs):
         try:
             opts, args = getopt.getopt(cmdargs, 'adhqsu:' + self.filter_short, [ 'commit', 'dryrun', 'dry-run', 
                     'help', 'verbose', self.filter_long ])
@@ -514,7 +521,7 @@ class GNOMEI18nManage:
             print " configure it first."
             sys.exit(0)
 
-        print 'Language code: [%(lang)s]\tLanguage: %(langfull)s\tUsername: %(u)s' % \
+        print 'Language code: [%(lang)s]\t Language: %(langfull)s\t Username: %(u)s' % \
                 { 'lang': self.language, 
                   'langfull': self.languagefull, 'u': self.username }
         print
@@ -664,7 +671,7 @@ class GNOMEI18nManage:
             self.process_stats('execute')
 
     def parse_gnome_release_data(self):
-        self.release = 'gnome-2-26'
+        self.release = 'gnome-2-28'
         filename = 'managevcs-%s-%s.xml' % (self.language, self.release)
         filepath = os.path.join(os.curdir, filename)
         xmlurl = 'http://l10n.gnome.org/languages/' + self.language + '/' + self.release + '/xml'
@@ -706,13 +713,13 @@ Usage: gnome-i18n-manage-vcs <action> <options>
 \t* status       show detailed status of local files
 \t* vcsmanage    repository management tasks
 \t* poget        retrieval of PO files
-\t* pocommit     commiting PO files
+\t* commit     commiting PO files
 """
 
         help_config = """config     Initial configuration
-\t\t--language LANG     language code per ISO 639
-\t\t--languagefull LANGFULL  full language name (such as 'Brazilian Portuguese')
-\t\t--username USER     username USR (corresponds to SVN/GIT GNOME account)
+\t\t--language LANG     specify the language code per ISO 639
+\t\t--languagefull LANGFULL  specify the full language name (such as 'Brazilian Portuguese')
+\t\t--username USER     specify username USR (corresponds to SVN/GIT GNOME account)
 \t-l                          list the configuration options                
 """
 
@@ -720,7 +727,8 @@ Usage: gnome-i18n-manage-vcs <action> <options>
 """
 
         help_vcsmanage = """vcsmanage   Local repository management (Module filtering applies)
-\t\t--clean         clears up the downloaded files (USE WITH CARE, WIPES REPOSITORIES)
+\t\t--cleanall      cleans up the repository folder (USE WITH CARE, WIPES REPOSITORIES)
+\t\t--removewc      erases the working copy in repositories (DOES NOT check for uncommitted changes)
 \t\t--clone         clone repositories
 \t\t--eponymous     make repositories eponymous (sets to new 'username')
 \t\t--gitverbose    show progress when cloning (git 1.5 ignores this option).
@@ -738,7 +746,7 @@ Usage: gnome-i18n-manage-vcs <action> <options>
 \t\t--dry-run       do not really checkout/commit
 """
 
-        help_filtering = """Module filtering  (applies to 'vcsmanage', 'poget', 'pocommit')
+        help_filtering = """Module filtering  (applies to 'vcsmanage', 'poget', 'commit')
 \t-c CAT  --category CAT      i18n category name CAT (such as 'desktop')
 \t-m MODU --module MOD        i18n module name MOD (such as 'gnome-games')
 \t-r REL  --release REL       GNOME release (such as 'gnome-2-26')
@@ -788,10 +796,15 @@ Usage: gnome-i18n-manage-vcs <action> <options>
         Downloads a file provided a URL and saves it as filepath.
         """
 
+        if self.opt_verbose:
+            print 'Downloading', url, " ",
         # Download the file, regardless if it exists or not.
         try:
             urllib.urlretrieve(url, filepath, self.download_hook)
         except IOError, (errno, strerror):
+            if self.opt_verbose:
+                print
+            print 'While trying to download', url
             print 'I/O error(%s): %s' % (errno, strerror)
             sys.exit(-1)
         except OSError, err:
