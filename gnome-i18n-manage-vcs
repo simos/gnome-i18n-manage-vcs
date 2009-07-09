@@ -915,4 +915,5 @@ Usage: gnome-i18n-manage-vcs <action> <options>
             print "Error: It is required to specify at least one of release, category, module or translation type."
             sys.exit(8)
 
-start = GNOMEI18nManage(sys.argv)
+if __name__ == '__main__':
+    start = GNOMEI18nManage(sys.argv)
