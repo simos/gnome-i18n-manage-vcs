@@ -222,6 +222,10 @@ class GNOMEI18nManage:
         self.show_status(cmdargs)
 
     def process_poget(self, cmdargs):
+        if not cmdargs:
+            self.usage(['intro', 'poget', 'filtering', 'common'])
+            sys.exit(0)
+
         try:
             this_filter_short = self.common_short + self.filter_short
             this_filter_long = ['cleanall']
@@ -309,7 +313,7 @@ class GNOMEI18nManage:
 
     def process_vcsmanage(self, cmdargs):
         if not cmdargs:
-            print 'Please specify an option. Try --help for more help.'
+            self.usage(['intro', 'vcsmanage', 'filtering', 'common'])
             sys.exit(0)
 
         try:
@@ -488,6 +492,10 @@ class GNOMEI18nManage:
                 counter = counter + 1
 
     def process_commit(self, cmdargs):
+        if not cmdargs:
+            self.usage(['intro', 'commit', 'filtering', 'common'])
+            sys.exit(0)
+
         try:
             opts, args = getopt.getopt(cmdargs, 'adhqsu:' + self.filter_short, [ 'commit', 'dryrun', 'dry-run', 
                     'help', 'verbose', self.filter_long ])
