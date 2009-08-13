@@ -17,15 +17,15 @@
 # Author  : Simos Xenitellis <simos@gnome.org>, 2009
 # Version : 0.9
 
-import ConfigParser             # ConfigParser()
+import configparser             # ConfigParser()
 import GNOMEI18nTarget
 
 try:
     from lxml import etree      # etree.XMLParser(), etree.XML()
-except ImportError, err:
-    print 'Import error:', err
-    print 'This script requires to have the "python-lxml" package installed'
-    print 'Please install the package python-lxml and try again.\nExiting...'
+except ImportError as err:
+    print('Import error:', err)
+    print('This script requires to have the "python-lxml" package installed')
+    print('Please install the package python-lxml and try again.\nExiting...')
     sys.exit(-10)
 
 PROGNAME='gnome-i18n-manage-vcs'
@@ -49,7 +49,7 @@ class ModuleIterator:
         if self.release:
             self.gnome_release_data = self.generate_gnome_release_data()
             
-            for cat in self.gnome_release_data['categories'].keys():
+            for cat in list(self.gnome_release_data['categories'].keys()):
                 if self.category != '' and cat != self.category:
                     continue
                 for mod in self.gnome_release_data['categories'][cat]:
@@ -64,7 +64,7 @@ class ModuleIterator:
                         else:
                             self.selected_modules.append([mod, resource])
 
-    def next(self):
+    def __next__(self):
         return self.selected_modules.pop()
 
     def __iter__(self):
@@ -78,7 +78,7 @@ class ModuleIterator:
             xmlfile = open(filename, 'r')
             xmlfile.close
         except OSError:
-            print 'Could not open file ', filename, '. Aborting...'
+            print('Could not open file ', filename, '. Aborting...')
             sys.exit(-1)
     
         contents = ''.join(xmlfile.readlines())
@@ -94,7 +94,7 @@ if __name__ == '__main__':
 
     try:
         for module_set in a:
-            print module_set[0], module_set[1]
+            print(module_set[0], module_set[1])
     except:
         pass
 

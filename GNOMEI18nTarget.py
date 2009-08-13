@@ -118,7 +118,7 @@ class GNOMEI18nTarget:
 
     def pop_flag(self, tag):
         if self.flags.pop() != tag:
-            print 'ERROR, did not pop', tag
+            print('ERROR, did not pop', tag)
 
     def get_stats(self):
         return self.stats
