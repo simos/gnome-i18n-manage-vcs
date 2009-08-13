@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
 # This program is free software: you can redistribute it and/or modify
@@ -82,7 +82,7 @@ class GNOMEI18nManage:
     opt_dryrun = False
     opt_eponymous = False
     opt_init = False
-    opt_clean = False
+    opt_cleanall = False
     opt_gitverbose = False
     opt_nocheckout = False
     opt_trim = False
@@ -238,8 +238,8 @@ class GNOMEI18nManage:
             sys.exit(0)
 
         for o, a in opts:
-            if o in ('--clean'):
-                self.opt_clean = True
+            if o in ('--cleanall'):
+                self.opt_cleanall = True
             if o in ('--dryrun', '--dry-run'):
                 self.opt_dryrun = True
             if o in ('-h', '--help'):
@@ -259,7 +259,7 @@ class GNOMEI18nManage:
 
         self.dir_po, self.dir_vcs = self.get_release_config(self.release)
 
-        if self.opt_clean:
+        if self.opt_cleanall:
             podircontents = dircache.listdir(self.dir_po)
             podircontents = podircontents[:]
             try: 
@@ -312,28 +312,29 @@ class GNOMEI18nManage:
                     os.system(CMD2)
 
     def process_vcsmanage(self, cmdargs):
+        self.dir_po, self.dir_vcs = self.get_release_config(self.release)
         if not cmdargs:
             self.usage(['intro', 'vcsmanage', 'filtering', 'common'])
             sys.exit(0)
 
         try:
                 this_filter_short = self.common_short + self.filter_short
-                this_filter_long = ['clean', 
+                this_filter_long = ['cleanall', 
                 'commit', 'clone', 'eponymous',
                 'no-checkout',
                 'reset', 'gitverbose', 'trim',
                 'username=', 'update-vcs', 'updatevcs', 
                 'vcsupdate', 'vcs-update'];
-                this_filter.extend(self.common_long)
-                this_filter.extend(self.filter_long)
+                this_filter_long.extend(self.common_long)
+                this_filter_long.extend(self.filter_long)
                 opts, args = getopt.getopt(cmdargs, this_filter_short, this_filter_long) 
         except getopt.GetoptError, err:
             print 'Error', err
             self.usage(['intro', 'vcsmanage', 'filtering', 'common'])
             sys.exit(0)
         for o, a in opts:
-            if o in ('--clean'):
-                self.opt_clean = True
+            if o in ('--cleanall'):
+                self.opt_cleanall = True
             if o in ('--clone'):
                 self.opt_clone = True
             if o in ('--dryrun', '--dry-run'):
@@ -426,8 +427,8 @@ class GNOMEI18nManage:
                 print ' ' * 80 
                 pass
 
-        if self.opt_clean:
-            self.do_clean(self.dir_vcs)
+        if self.opt_cleanall:
+            self.do_cleanall(self.dir_vcs)
 
         if self.opt_eponymous:
             dircontents = dircache.listdir(self.dir_vcs)
@@ -652,7 +653,7 @@ class GNOMEI18nManage:
                     else:
                         print 'Would reset hard', dir + item
 
-    def do_clean(self, dir):
+    def do_cleanall(self, dir):
         dircontents = dircache.listdir(dir)
         dircontents = dircontents[:]
         if dircontents:
@@ -746,7 +747,7 @@ Usage: gnome-i18n-manage-vcs <action> <options>
 """
 
         help_poget = """poget       Retrieve a selection of PO files (Module filtering required)
-\t\t--clean         clears up the downloaded files (USE WITH CARE, WIPES PO FILES)
+\t\t--cleanall      clears up the downloaded files (USE WITH CARE, WIPES PO FILES)
 """
 
         help_commit = """commit    Commit and push the translation work to the repositories
@@ -920,8 +921,9 @@ Usage: gnome-i18n-manage-vcs <action> <options>
 
     def verify_filtering(self):
         if self.category == '' and self.module == '' and self.release == '' and self.transtype == '':
-            print "Error: It is required to specify at least one of release, category, module or translation type."
-            sys.exit(8)
+            if not self.opt_cleanall:
+                print "Error: It is required to specify at least one of release, category, module or translation type."
+                sys.exit(8)
 
 if __name__ == '__main__':
     start = GNOMEI18nManage(sys.argv)
