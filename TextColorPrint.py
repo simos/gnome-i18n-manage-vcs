@@ -51,13 +51,13 @@ class TextColorPrint:
     def show_colors(self):
         ''' show all available color options'''
         for key in self.colors:
-            self.cprint(key, key)
+            print self.cprint(key, key)
 
     def cprint(self, string, color='red'):
         ''' print string in the color specified.'''
         if not self.colors.has_key(color):
             raise KeyError, 'Invalid color. use show_colors() to see all options.' 
-        print self.colors[color] + string + self.colors['clear']
+        return self.colors[color] + string + self.colors['clear']
 
     def hprint(self, string, regex, color='red'):
         ''' find and highlight all occurences of regex in string and print
@@ -65,7 +65,7 @@ class TextColorPrint:
         if not self.colors.has_key(color):
             raise KeyError, 'Invalid color. use show_colors() to see all options.'        
         formatted = re.sub('(?P<x>' + regex+')', self.colors[color] + '\g<x>' + self.colors['clear'], string)
-        print formatted
+        return formatted
 
 if __name__ == '__main__':
     a = TextColorPrint()

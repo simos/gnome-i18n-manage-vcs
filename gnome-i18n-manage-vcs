@@ -23,7 +23,8 @@ import getopt                   # getopt.getopt()
 import shutil                   # shutil.rmtree()
 import sys                      # sys.argv, sys.exit()
 import urllib                   # urllib.urlretrieve()
-import ConfigParser as configparser             # ConfigParser()
+import ConfigParser             # ConfigParser()
+import TextColorPrint
 from datetime import datetime   # datetime()
 
 from xdg.BaseDirectory import * # XDG Python support, ...
@@ -47,11 +48,12 @@ PACKAGE_COPYRIGHT = 'Copyright 2009 Simos Xenitellis'
 
 class GNOMEI18nManage:
     # Required configuration options
-    language = ''
     languagefull = ''
+    language = ''
     username = ''
 
     # Options used for filtering
+    all = False
     category = ''
     module = ''
     release = ''
@@ -61,7 +63,7 @@ class GNOMEI18nManage:
     common_long = ['dry-run', 'help', 'verbose']
 
     filter_short = 'c:m:r:t:'
-    filter_long = ['category=', 'module=', 'release=', 'transtype=']
+    filter_long = ['all', 'category=', 'module=', 'release=', 'transtype=']
 
     gnome_release_data = []
 
@@ -70,6 +72,9 @@ class GNOMEI18nManage:
     file_START = 'START'
 
     file_CONFIG = ''
+
+    # Text color object
+    tc = ''
 
     action_config = False
     action_status = False
@@ -91,9 +96,13 @@ class GNOMEI18nManage:
     opt_vcsupdate = False
 
     def __init__(self, argv):
+        # If no args, show basic help.
         if not argv[1:]:
             self.usage(['intro', 'actions', 'help'])
             sys.exit(0)
+
+        # Initialise the text color object
+        self.tc = TextColorPrint.TextColorPrint()
 
         # Establish where the configuration file should be stored as per the
         # XDG directories recommendation by the Freedesktop organization.
@@ -107,9 +116,10 @@ class GNOMEI18nManage:
         if not os.path.isdir(self.data_dir):
             os.mkdir(self.data_dir)
 
-        # Configuration file
+        # Set the configuration filename and path.
         self.conf_file = os.path.join(self.conf_dir, '%s.conf' % PROGNAME)
 
+        # Identify the action selected.
         if argv[1] == 'config':
                 self.action_config = True
         elif argv[1] == 'status':
@@ -125,12 +135,15 @@ class GNOMEI18nManage:
                         'poget', 'commit', 'filtering', 'common'])
             sys.exit(0)
 
+        # Perform the 'config' action.
         if self.action_config:
             self.process_config(argv[2:])
             sys.exit(0)
 
+        # Read the configuration file.
         self.readconfig()
 
+        # Perform the subsequence actions.
         if self.action_status:
             self.process_status(argv[2:])
         elif self.action_vcsmanage:
@@ -140,23 +153,36 @@ class GNOMEI18nManage:
         elif self.action_commit:
             self.process_commit(argv[2:])
 
+        # Execution ends.
         print 'Action has just completed.'
         sys.exit(0)
 
+    def highlight(self, str):
+        ''' Returns a string with ANSI codes that print as color on the terminal window. '''
+        return self.tc.cprint(str, 'red')
+
+    def highlightitem(self, str):
+        ''' Returns a string with ANSI codes that print as color on the terminal window. '''
+        return self.tc.cprint(str, 'green')
+
     def process_config(self, cmdargs):
+        ''' Process the 'config' action. '''
+        # If no arguments, show 'config' specific help.
         if not cmdargs:
             self.usage(['intro', 'config'])
             sys.exit(0)
 
+        # Build command line argument filter.
         try:
-            this_filter = [ 'language=', 'languagefull=', 'status', 'username=' ];
+            this_filter = [ 'language=', 'languagefull=', 'username=' ];
             this_filter.extend(self.common_long)
-            opts, args = getopt.getopt(cmdargs, 'ls' + self.common_short, this_filter)
+            opts, args = getopt.getopt(cmdargs, 'l' + self.common_short, this_filter)
         except getopt.GetoptError as err:
             print 'Error: %s' % str(err)
             self.usage(['intro', 'actions', 'config'])
             sys.exit(0)
 
+        # Retrieve parament values.
         listconfig = False
         for o, a in opts:
             if o in ('-h', '--help'):
@@ -169,25 +195,23 @@ class GNOMEI18nManage:
                 self.languagefull = a
             if o in ('-l'):
                 listconfig = True
-            if o in ('-s', '--status'):
-                self.opt_status = True
             if o in ('--username'):
                 self.username = a
-            if o in ('-v', '--verbose'):
-                self.opt_verbose = True
 
+        # Perform '-l' (list) option.
         if not os.path.exists(self.conf_dir):
             print 'Could not find a configuration file: %s' % self.conf_dir
             print 'Creating new configuration file...'
         elif listconfig:
             self.readconfig()
-            print 'Configuration (%s)' % self.conf_dir
+            print 'Configuration file (%s)' % self.highlight(self.conf_dir)
             print
-            print 'Language code =', self.language
-            print 'Full language name =', self.languagefull
-            print 'Username =', self.username
+            print 'Full language name =', self.highlight(self.languagefull)
+            print 'Language code      =', self.highlight(self.language)
+            print 'Username           =', self.highlight(self.username)
             sys.exit(0)
 
+        # Print diagnostics that one of the tuple is not defined.
         if self.language == '' or self.languagefull == '' or self.username == '':
             print 'Error: Required parameter(s) missing for configuration'
             print 'When using the "config" action for the first time, please specify all of the'
@@ -206,6 +230,7 @@ class GNOMEI18nManage:
         # Make sure we have directories for po and vcs files.
         self.createreleasedirectory(self.release)
 
+        # Show diagnostics for created directories.
         for dir in [self.dir_po, self.dir_vcs]:
             if not os.path.exists(dir):
                 print 'Directory', dir, 'does not exist.'
@@ -213,10 +238,8 @@ class GNOMEI18nManage:
                 print 'Exiting...'
                 sys.exit(-1)
 
+        # Write back new configuration settings.
         self.writeconfig()
-
-        if self.opt_verbose:
-            print 'Use "config --status" to view the current configuration settings.'
 
     def process_status(self, cmdargs):
         self.show_status(cmdargs)
@@ -363,7 +386,35 @@ class GNOMEI18nManage:
         self.verify_filtering()
 
         if self.opt_vcsreset:
-            self.reset_hard(self.dir_vcs)
+            self.perform_on_repositories('git reset --hard origin/master', 'Performing hard reset on')
+        elif self.opt_cleanall:
+            self.perform_on_repositories(shutil.rmtree, 'Removing repositories')
+        elif self.opt_eponymous:
+            # Convert clones to eponymous ones. Sets the username to self.username.
+            if self.username == 'anonymous':
+                print 'In order to use --eponymous, you need to set the username to'
+                print 'something other than "anonymous".'
+                print 'Exiting...'
+                sys.exit(-1)
+            dircontents = dircache.listdir(self.dir_vcs)
+            dircontents = dircontents[:]
+            cmd_remote_url_partial = 'git config remote.origin.url ssh://' + self.username+ '@git.gnome.org/git/'
+            counter = 1
+            # For each repository,
+            for vcsdir in dircontents:
+                print 'Converting', self.dir_vcs + vcsdir, ' -- ', counter, 'of', len(dircontents)
+                cmd_changedir = 'cd ' + self.dir_vcs + vcsdir
+                cmd_remote_url = cmd_remote_url_partial + vcsdir
+                if self.opt_dryrun:
+                    print "\tPerforming", cmd_changedir
+                    print "\tPerforming", cmd_remote_url
+                else:
+                    try:
+                        os.system(cmd_changedir + ';' + cmd_remote_url)
+                    except OSError as err:
+                        print err
+                        sys.exit(-1)
+                counter = counter + 1
 
         if self.opt_clone:
             #self.parse_gnome_release_data()
@@ -427,42 +478,8 @@ class GNOMEI18nManage:
                 print ' ' * 80
                 pass
 
-        if self.opt_cleanall:
-            self.do_cleanall(self.dir_vcs)
 
-        if self.opt_eponymous:
-            dircontents = dircache.listdir(self.dir_vcs)
-            dircontents = dircontents[:]
-            if self.username == 'anonymous':
-                print 'In order to use --eponymous, you need to set the username to'
-                print 'something other than "anonymous".'
-                print 'Exiting...'
-                sys.exit(-1)
-            cmd_remote_rm = 'git remote rm origin'
-            cmd_remote_origin = 'git config branch.master.remote origin'
-            cmd_remote_merge = 'git config branch.master.merge refs/heads/master'
-            counter = 1
-            for vcsdir in dircontents:
-                print 'Converting', self.dir_vcs + vcsdir, ' -- ', counter, 'of', len(dircontents)
-                cmd_changedir = 'cd ' + self.dir_vcs + vcsdir
-                cmd_remote_add = 'git remote add origin -m master -f ssh://' + self.username \
-                    + '@git.gnome.org/git/' + vcsdir + '/'
-                if self.opt_dryrun:
-                    cmd_changedir + ';' + cmd_remote_rm
-                    cmd_changedir + ';' + cmd_remote_add
-                    cmd_changedir + ';' + cmd_remote_origin
-                    cmd_changedir + ';' + cmd_remote_merge
-                else:
-                    try:
-                        print os.system(cmd_changedir + ';' + cmd_remote_rm)
-                        print os.system(cmd_changedir + ';' + cmd_remote_add)
-                        print os.system(cmd_changedir + ';' + cmd_remote_origin)
-                        print os.system(cmd_changedir + ';' + cmd_remote_merge)
-                    except OSError as err:
-                        print err
-                        sys.exit(-1)
-                counter = counter + 1
-
+        # Erase the working copy of each repository.
         if self.opt_trim:
             dircontents = dircache.listdir(self.dir_vcs)
             dircontents = dircontents[:]
@@ -470,7 +487,7 @@ class GNOMEI18nManage:
             for vcsdir in dircontents:
                 print 'Erasing working copy for', self.dir_vcs + vcsdir, ' -- ', counter, 'of', len(dircontents)
                 if self.opt_dryrun:
-                    print 'rm -fr ' + self.dir_vcs + vcsdir + '/*'
+                    print '\tPerforming rm -fr ' + self.dir_vcs + vcsdir + '/*'
                 else:
                     os.system('rm -fr ' + self.dir_vcs + vcsdir + '/*')
                 counter = counter + 1
@@ -522,25 +539,32 @@ class GNOMEI18nManage:
             self.apply_translation_changes()
 
     def show_status(self, cmdargs):
+        ''' Show status information of the current localisation files. '''
+        # Retrieve PO and VCS directory values.
         self.dir_po, self.dir_vcs = self.get_release_config(self.release)
 
+        # Perform check for VCS directory.
         if not os.path.isdir(self.dir_vcs):
             print 'The release you have entered has not been configured yet.'
             print 'Please provide the name of a valid release or make sure to'
             print ' configure it first.'
             sys.exit(0)
 
+        # Print general configuration information.
         print 'Language code: [%(lang)s]\t Language: %(langfull)s\t Username: %(u)s' % \
-                { 'lang': self.language,
-                  'langfull': self.languagefull, 'u': self.username }
+                { 'lang': self.highlight(self.language),
+                  'langfull': self.highlight(self.languagefull), 'u': self.highlight(self.username) }
         print
-        print 'VCS Directory:', self.dir_vcs
-        print 'PO  Directory:', self.dir_po
+        print 'VCS Directory:', self.highlight(self.dir_vcs)
+        print 'PO  Directory:', self.highlight(self.dir_po)
         print
+
+        # Show found repositories, PO files.
         dircontents = dircache.listdir(self.dir_vcs)
         dircontents = dircontents[:]
-        print len(dircontents), 'repositories found:'
-        print '\t', ', '.join(map(str, dircontents))
+        print self.highlight(str(len(dircontents))), 'repositories found:'
+        for repo in dircontents:
+            print '\t', self.highlightitem(repo)
         if os.path.exists(self.dir_po) or self.dir_po:
             podircontents = dircache.listdir(self.dir_po)
             podircontents = podircontents[:]
@@ -548,13 +572,15 @@ class GNOMEI18nManage:
                 podircontents.remove(self.file_START)
             except ValueError as err:
                 pass
-            print len(podircontents), 'PO files found:'
+            print self.highlight(str(len(podircontents))), 'PO files found:'
             for pofile in podircontents:
-                print '\t', pofile
+                print '\t', self.highlightitem(pofile)
         else:
             print 'No PO directory has been specified. Please specify'
-            print 'such a directory with --config --podir <path to dir>.'
+            print 'such a directory with the "config" action.'
             print 'Exiting...'
+            sys.exit(-1)
+        # Show PO file details
         try:
             start_time = os.stat(self.dir_po + self.file_START).st_mtime
         except OSError:
@@ -567,7 +593,7 @@ class GNOMEI18nManage:
         for pofile in podircontents:
             potime = os.stat(self.dir_po + pofile).st_mtime
             if start_time < potime:
-                print '\t', datetime.ctime(datetime.fromtimestamp(potime)), '\t', pofile
+                print '\t', datetime.ctime(datetime.fromtimestamp(potime)), '\t', self.highlightitem(pofile)
 
     def apply_translation_changes(self):
         vcsdircontents = dircache.listdir(self.dir_vcs)
@@ -638,39 +664,38 @@ class GNOMEI18nManage:
                 return False
         return True
 
-    def reset_hard(self, dir):
-        dircontents = dircache.listdir(dir)
+    def perform_on_repositories(self, command, description):
+        dircontents = dircache.listdir(self.dir_vcs)
         dircontents = dircontents[:]
         if dircontents:
+            count = 1
+            total = len(dircontents)
             for item in dircontents:
-                if os.path.isdir(dir + item):
-                    CMD = 'cd ' + dir + item + '; git reset --hard origin/master'
-                    if self.opt_verbose:
-                        print CMD
-                    if not self.opt_dryrun:
-                        print 'Reseting hard', dir + item
-                        os.system(CMD)
+                if os.path.isdir(self.dir_vcs + item):
+                    if type(command).__name__ == 'function':
+                        if self.opt_verbose:
+                            print '%(aa)3d/%(total)d -- Running function on %(dir)s' % \
+                                { 'aa': count, 'total': total, 'dir': self.dir_vcs + item }
+                        if not self.opt_dryrun:
+                            command(self.dir_vcs + item)
+                        else:
+                            print '\tcmd(' + self.dir_vcs + item + ')'
+                    elif type(command).__name__ == 'str':
+                        CMD = 'cd ' + self.dir_vcs + item + '; ' + command
+                        if self.opt_verbose:
+                            print '%(aa)3d/%(total)d -- Running command %(cmd)s' % \
+                                { 'aa': count, 'total': total, 'cmd': CMD }
+                        if not self.opt_dryrun:
+                            print '%(aa)3d/%(total)d -- %(desc)s %(dir)s' % \
+                                { 'aa': count, 'total': total, 'desc': description, 'dir': self.dir_vcs + item }
+                            os.system(CMD)
+                        else:
+                            print '\t', description, self.dir_vcs + item
+                            print '\t', CMD
                     else:
-                        print 'Would reset hard', dir + item
-
-    def do_cleanall(self, dir):
-        dircontents = dircache.listdir(dir)
-        dircontents = dircontents[:]
-        if dircontents:
-            for item in dircontents:
-                if os.path.isdir(dir + item):
-                    if not self.opt_dryrun:
-                        print 'Removing directory tree', dir + item
-                        shutil.rmtree(dir + item)
-                    else:
-                        print 'Would remove directory tree', dir + item
-
-                else:
-                    if not self.opt_dryrun:
-                        print 'Removing file', dir + item
-                        os.remove(dir + item)
-                    else:
-                        print 'Would remove file', dir + item
+                        print 'Error, unknown type', type(command)
+                        sys.exit(-1)
+                count += 1
 
     def init(self):
         if self.opt_dryrun:
@@ -755,6 +780,7 @@ Usage: gnome-i18n-manage-vcs <action> <options>
 """
 
         help_filtering = """Module filtering  (applies to 'vcsmanage', 'poget', 'commit')
+\t        --all               apply action to all locally available repositories
 \t-c CAT  --category CAT      i18n category name CAT (such as 'desktop')
 \t-m MODU --module MOD        i18n module name MOD (such as 'gnome-games')
 \t-r REL  --release REL       GNOME release (such as 'gnome-2-26')
@@ -846,7 +872,7 @@ Usage: gnome-i18n-manage-vcs <action> <options>
             os.mkdir(self.dir_vcs)
 
     def writeconfig(self):
-        config = configparser.ConfigParser()
+        config = ConfigParser.ConfigParser()
 
         try:
             config.add_section('GNOME-I18n-Manage-VCS')
@@ -860,7 +886,7 @@ Usage: gnome-i18n-manage-vcs <action> <options>
             #config.set('GNOME-I18n-Manage-VCS', 'vcsdir', self.dir_vcs)
             #self.dir_po = os.path.join(self.data_dir, self.release, 'po/')
             #config.set('GNOME-I18n-Manage-VCS', 'podir', self.dir_po)
-        except configparser.NoOptionError as err:
+        except ConfigParser.NoOptionError as err:
             print 'Error:', err
             sys.exit(10)
 
@@ -875,7 +901,7 @@ Usage: gnome-i18n-manage-vcs <action> <options>
         """
         Reads the existing configuration file.
         """
-        config = configparser.ConfigParser()
+        config = ConfigParser.ConfigParser()
 
         if os.path.exists(self.conf_file):
             config.read(self.conf_file)
@@ -886,7 +912,7 @@ Usage: gnome-i18n-manage-vcs <action> <options>
                 self.username = config.get('GNOME-I18n-Manage-VCS', 'username')
                 #self.dir_po = os.path.join(self.data_dir, self.release, 'po/')
                 #self.dir_vcs = os.path.join(self.data_dir, self.release, 'vcs/')
-            except configparser.NoOptionError as err:
+            except ConfigParser.NoOptionError as err:
                 if not self.action_config:
                     print 'Error:', str(err)
                     print 'Please use --config and the relevant argument to set the missing setting'
@@ -904,6 +930,8 @@ Usage: gnome-i18n-manage-vcs <action> <options>
         return dir_po, dir_vcs
 
     def apply_filtering(self, o, a):
+        if o in ('--all'):
+            self.all = True
         if o in ('-c', '--category'):
             self.category = a
         if o in ('-m', '--module'):
@@ -920,9 +948,9 @@ Usage: gnome-i18n-manage-vcs <action> <options>
                 sys.exit(-4)
 
     def verify_filtering(self):
-        if self.category == '' and self.module == '' and self.release == '' and self.transtype == '':
+        if self.all == False and self.category == '' and self.module == '' and self.release == '' and self.transtype == '':
             if not self.opt_cleanall:
-                print 'Error: It is required to specify at least one of release, category, module or translation type.'
+                print 'Error: It is required to specify at least one of release, category, module or translation type, or specify all.'
                 sys.exit(8)
 
 if __name__ == '__main__':
