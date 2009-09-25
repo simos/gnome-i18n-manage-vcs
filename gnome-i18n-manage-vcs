@@ -25,6 +25,7 @@ import sys                      # sys.argv, sys.exit()
 import urllib                   # urllib.urlretrieve()
 import ConfigParser             # ConfigParser()
 import TextColorPrint
+import GetKey                   # for GetKey.getch()
 from datetime import datetime   # datetime()
 
 from xdg.BaseDirectory import * # XDG Python support, ...
@@ -386,35 +387,23 @@ class GNOMEI18nManage:
         self.verify_filtering()
 
         if self.opt_vcsreset:
+            # Perform hard reset on repositories
             self.perform_on_repositories('git reset --hard origin/master', 'Performing hard reset on')
         elif self.opt_cleanall:
+            # Remove all repositories
             self.perform_on_repositories(shutil.rmtree, 'Removing repositories')
         elif self.opt_eponymous:
             # Convert clones to eponymous ones. Sets the username to self.username.
-            if self.username == 'anonymous':
-                print 'In order to use --eponymous, you need to set the username to'
-                print 'something other than "anonymous".'
-                print 'Exiting...'
-                sys.exit(-1)
-            dircontents = dircache.listdir(self.dir_vcs)
-            dircontents = dircontents[:]
             cmd_remote_url_partial = 'git config remote.origin.url ssh://' + self.username+ '@git.gnome.org/git/'
-            counter = 1
-            # For each repository,
-            for vcsdir in dircontents:
-                print 'Converting', self.dir_vcs + vcsdir, ' -- ', counter, 'of', len(dircontents)
-                cmd_changedir = 'cd ' + self.dir_vcs + vcsdir
-                cmd_remote_url = cmd_remote_url_partial + vcsdir
-                if self.opt_dryrun:
-                    print "\tPerforming", cmd_changedir
-                    print "\tPerforming", cmd_remote_url
-                else:
-                    try:
-                        os.system(cmd_changedir + ';' + cmd_remote_url)
-                    except OSError as err:
-                        print err
-                        sys.exit(-1)
-                counter = counter + 1
+            self.perform_on_repositories(cmd_remote_url_partial, 'Converting repository to eponymous', append_name = True)
+        elif self.opt_trim:
+            # Erase the working copy of each repository.
+            cmd_erase_working_copy = 'rm -fr ' + self.dir_vcs
+            self.perform_on_repositories(cmd_erase_working_copy, 'Erasing working copy for', append_nameslashstar = True)
+        elif self.opt_vcsupdate:
+            # Perform 'git pull --rebase' for each repository.
+            cmd_pull = 'git pull --rebase'
+            self.perform_on_repositories(cmd_pull, 'Performing a git pull --rebase in')
 
         if self.opt_clone:
             #self.parse_gnome_release_data()
@@ -477,37 +466,6 @@ class GNOMEI18nManage:
             if not self.opt_verbose:
                 print ' ' * 80
                 pass
-
-
-        # Erase the working copy of each repository.
-        if self.opt_trim:
-            dircontents = dircache.listdir(self.dir_vcs)
-            dircontents = dircontents[:]
-            counter = 1
-            for vcsdir in dircontents:
-                print 'Erasing working copy for', self.dir_vcs + vcsdir, ' -- ', counter, 'of', len(dircontents)
-                if self.opt_dryrun:
-                    print '\tPerforming rm -fr ' + self.dir_vcs + vcsdir + '/*'
-                else:
-                    os.system('rm -fr ' + self.dir_vcs + vcsdir + '/*')
-                counter = counter + 1
-
-        if self.opt_vcsupdate:
-            dircontents = dircache.listdir(self.dir_vcs)
-            dircontents = dircontents[:]
-            cmd_pull = 'git pull --rebase'
-            counter = 1
-            for vcsdir in dircontents:
-                # We commit irrespective of any changed files; if files are not changed,
-                # no harm is done.
-                ###if self.opt_verbose:
-                print 'Pulling for', self.dir_vcs + vcsdir, ' -- ', counter, 'of', len(dircontents)
-                cmd_changedir = 'cd ' + self.dir_vcs + vcsdir
-                if self.opt_dryrun:
-                    print cmd_changedir + ';' + cmd_pull
-                else:
-                    os.system(cmd_changedir + ';' + cmd_pull)
-                counter = counter + 1
 
     def process_commit(self, cmdargs):
         if not cmdargs:
@@ -664,38 +622,51 @@ class GNOMEI18nManage:
                 return False
         return True
 
-    def perform_on_repositories(self, command, description):
+    def perform_on_repositories(self, command, description, append_name = False, append_nameslashstar = False):
         dircontents = dircache.listdir(self.dir_vcs)
         dircontents = dircontents[:]
         if dircontents:
+            getkey = GetKey.GetKey()
+            getkey.newTerminalSettings()
             count = 1
             total = len(dircontents)
             for item in dircontents:
+                if getkey.getch():
+                    getkey.oldTerminalSettings()
+                    return
                 if os.path.isdir(self.dir_vcs + item):
                     if type(command).__name__ == 'function':
                         if self.opt_verbose:
-                            print '%(aa)3d/%(total)d -- Running function on %(dir)s' % \
-                                { 'aa': count, 'total': total, 'dir': self.dir_vcs + item }
+                            indexnums = self.highlight('%(aa)3d/%(total)d' % { 'aa': count, 'total': total })
+                            print '%(index)s -- Running function on %(dir)s' % \
+                                { 'index': indexnums, 'dir': self.highlightitem(self.dir_vcs + item) }
                         if not self.opt_dryrun:
                             command(self.dir_vcs + item)
                         else:
                             print '\tcmd(' + self.dir_vcs + item + ')'
                     elif type(command).__name__ == 'str':
                         CMD = 'cd ' + self.dir_vcs + item + '; ' + command
+                        if append_name:
+                            CMD = CMD + item
+                        elif append_nameslashstar:
+                            CMD = CMD + item + '/*'
                         if self.opt_verbose:
                             print '%(aa)3d/%(total)d -- Running command %(cmd)s' % \
                                 { 'aa': count, 'total': total, 'cmd': CMD }
                         if not self.opt_dryrun:
-                            print '%(aa)3d/%(total)d -- %(desc)s %(dir)s' % \
-                                { 'aa': count, 'total': total, 'desc': description, 'dir': self.dir_vcs + item }
+                            indexnums = self.highlight('%(aa)3d/%(total)d' % { 'aa': count, 'total': total })
+                            print '%(index)s -- %(desc)s %(dir)s' % \
+                                { 'index': indexnums, 'desc': description, 'dir': self.highlightitem(self.dir_vcs + item) }
                             os.system(CMD)
                         else:
                             print '\t', description, self.dir_vcs + item
                             print '\t', CMD
                     else:
                         print 'Error, unknown type', type(command)
+                        getkey.oldTerminalSettings()
                         sys.exit(-1)
                 count += 1
+            getkey.oldTerminalSettings()
 
     def init(self):
         if self.opt_dryrun:
