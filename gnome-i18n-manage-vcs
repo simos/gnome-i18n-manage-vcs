@@ -282,8 +282,8 @@ class GNOMEI18nManage:
         # Create a new directory for this release
         self.createreleasedirectory(release)
 
-        print('Release  :', release)
-        print('Language :', language)
+        print('Release  :', self.release)
+        print('Language :', self.language)
         for cat in list(self.gnome_release_data['categories'].keys()):
             if self.category != '' and cat != self.category:
                 continue
@@ -370,8 +370,8 @@ class GNOMEI18nManage:
             #release = self.gnome_release_data['release']
             #language = self.gnome_release_data['language']
             #self.dir_po, self.dir_vcs = self.get_release_config(self.release)
-            print('Release  :', release)
-            print('Language :', language)
+            print('Release  :', self.release)
+            print('Language :', self.language)
             print('Directories:', self.dir_po, self.dir_vcs)
             for cat in list(self.gnome_release_data['categories'].keys()):
                 if self.category != '' and cat != self.category:
