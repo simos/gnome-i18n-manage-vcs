@@ -17,7 +17,7 @@
 # Author  : Simos Xenitellis <simos@gnome.org>, 2009
 # Version : 0.9
 
-import configparser             # ConfigParser()
+import ConfigParser             # ConfigParser()
 import GNOMEI18nTarget
 
 try:

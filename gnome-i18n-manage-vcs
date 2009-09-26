@@ -406,11 +406,18 @@ class GNOMEI18nManage:
             self.perform_on_repositories(cmd_pull, 'Performing a git pull --rebase in')
 
         if self.opt_clone:
+            # We add more repositories. You can specify single modules, or groups of modules from a release.
+            if self.module:
+                self.clone_module(self.module, self.username)
+            elif self.release:
+                print "Cloning release", self.release, "category:", self.category
+            else:
+                print "You need to specify a release"
+            sys.exit(1)
             #self.parse_gnome_release_data()
             #release = self.gnome_release_data['release']
             #language = self.gnome_release_data['language']
             #self.dir_po, self.dir_vcs = self.get_release_config(self.release)
-            print 'Release  :', self.release
             print 'Language :', self.language
             print 'Directories:', self.dir_po, self.dir_vcs
             for cat in list(self.gnome_release_data['categories'].keys()):
@@ -633,6 +640,7 @@ class GNOMEI18nManage:
             for item in dircontents:
                 if getkey.getch():
                     getkey.oldTerminalSettings()
+                    print self.highlight('A key was pressed; interrupting the process')
                     return
                 if os.path.isdir(self.dir_vcs + item):
                     if type(command).__name__ == 'function':
@@ -732,7 +740,6 @@ Usage: gnome-i18n-manage-vcs <action> <options>
 
         help_vcsmanage = """vcsmanage   Local repository management (Module filtering applies)
 \t\t--cleanall      cleans up the repository folder (USE WITH CARE, WIPES REPOSITORIES)
-\t\t--removewc      erases the working copy in repositories (DOES NOT check for uncommitted changes)
 \t\t--clone         clone repositories
 \t\t--eponymous     make repositories eponymous (sets to new 'username')
 \t\t--gitverbose    show progress when cloning (git 1.5 ignores this option).
@@ -923,6 +930,35 @@ Usage: gnome-i18n-manage-vcs <action> <options>
             if not self.opt_cleanall:
                 print 'Error: It is required to specify at least one of release, category, module or translation type, or specify all.'
                 sys.exit(8)
+
+    def clone_module(self, mod, user):
+        ''' Runs a git clone on the module requested. '''
+        print 'Cloning module',  mod + '...'
+        CMD = 'cd ' + self.dir_vcs + ';'
+        if user == 'anonymous':
+            vcspath = 'git://git.gnome.org/' + mod
+        else:
+            vcspath = 'ssh://' + user + '@' + 'git.gnome.org/git/' + mod
+        if self.opt_gitverbose:
+            if self.opt_nocheckout:
+                CMD = CMD + 'git clone --no-checkout ' + vcspath
+            else:
+                CMD = CMD + 'git clone ' + vcspath
+        else:
+            if self.opt_nocheckout:
+                CMD = CMD + 'git clone --no-checkout --quiet ' + vcspath
+            else:
+                CMD = CMD + 'git clone --quiet ' + vcspath
+
+        if self.opt_dryrun:
+            print '\tCMD:', CMD
+        else:
+            if os.path.exists(self.dir_vcs + mod):
+                print 'Repository for', mod, 'already exists. We skip cloning...'
+                return
+            else:
+                os.system(CMD)
+        return
 
 if __name__ == '__main__':
     start = GNOMEI18nManage(sys.argv)
