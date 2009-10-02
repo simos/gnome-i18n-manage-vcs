@@ -794,7 +794,7 @@ Usage: gnome-i18n-manage-vcs <action> <options>
         if blocks_transferred == 0:
             if file_size > 0:
                 if self.opt_verbose:
-                    sys.stdout.write('Downloading', file_size, 'bytes: ')
+                    sys.stdout.write('Downloading ' + str(file_size) + ' bytes: ')
                 else:
                     if self.opt_verbose:
                         sys.stdout.write('Downloading: ')
@@ -809,10 +809,10 @@ Usage: gnome-i18n-manage-vcs <action> <options>
         """
 
         if self.opt_verbose:
-            sys.stdout.write('Downloading', url, " ")
+            sys.stdout.write('Downloading ' + url + ' ')
         # Download the file, regardless if it exists or not.
         try:
-            urllib.request.urlretrieve(url, filepath, self.download_hook)
+            urllib.urlretrieve(url, filepath, self.download_hook)
         except IOError as data_ioerror:
             (errno, strerror) = data_ioerror.args
             if self.opt_verbose:
