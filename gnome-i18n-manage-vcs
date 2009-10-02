@@ -97,13 +97,13 @@ class GNOMEI18nManage:
     opt_vcsupdate = False
 
     def __init__(self, argv):
+        # Initialise the text color object
+        self.tc = TextColorPrint.TextColorPrint()
+
         # If no args, show basic help.
         if not argv[1:]:
             self.usage(['intro', 'actions', 'help'])
             sys.exit(0)
-
-        # Initialise the text color object
-        self.tc = TextColorPrint.TextColorPrint()
 
         # Establish where the configuration file should be stored as per the
         # XDG directories recommendation by the Freedesktop organization.
@@ -720,9 +720,8 @@ class GNOMEI18nManage:
 
     def usage(self, helpIDs):
         # Help text message
-        help_intro = self.highlight('gnome-i18n-manage-vcs') + """, """ + self.highlightitem('a tool that helps manage translation files from a VCS') + """
-Usage: gnome-i18n-manage-vcs <action> <options>
-"""
+        help_intro = self.highlight('gnome-i18n-manage-vcs') + ', ' + self.highlightitem('a tool that helps manage translation files from GNOME VCS') + \
+        """\nUsage: gnome-i18n-manage-vcs <action> <options>\n"""
 
         help_actions = """Please specify action. Available actions are:
 \t* """ + self.highlight('config') + """       configures the local settings
