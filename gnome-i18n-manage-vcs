@@ -100,6 +100,9 @@ class GNOMEI18nManage:
         # Initialise the text color object
         self.tc = TextColorPrint.TextColorPrint()
 
+        # getkey object for kbhit()
+        self.getkey = GetKey.GetKey()
+
         # If no args, show basic help.
         if not argv[1:]:
             self.usage(['intro', 'actions', 'help'])
@@ -637,13 +640,10 @@ class GNOMEI18nManage:
         dircontents = dircache.listdir(self.dir_vcs)
         dircontents = dircontents[:]
         if dircontents:
-            getkey = GetKey.GetKey()
-            getkey.newTerminalSettings()
             count = 1
             total = len(dircontents)
             for item in dircontents:
-                if getkey.getch():
-                    getkey.oldTerminalSettings()
+                if self.getkey.kbhit():
                     print self.highlight('A key was pressed; interrupting the process')
                     return
                 if os.path.isdir(self.dir_vcs + item):
@@ -675,10 +675,8 @@ class GNOMEI18nManage:
                             print '\t', CMD
                     else:
                         print 'Error, unknown type', type(command)
-                        getkey.oldTerminalSettings()
                         sys.exit(-1)
                 count += 1
-            getkey.oldTerminalSettings()
 
     def init(self):
         if self.opt_dryrun:

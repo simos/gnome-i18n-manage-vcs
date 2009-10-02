@@ -1,46 +1,38 @@
 #!/usr/bin/env python
+# Following now http://code.activestate.com/recipes/572182/
 
-import os
 import sys
-import tty
 import termios 
-import fcntl
-import time
+import atexit
+import select
 
 class GetKey:
     def __init__(self):
         self.fd = sys.stdin.fileno()
 
-        self.oldterm = termios.tcgetattr(self.fd)
-        self.oldflags = fcntl.fcntl(self.fd, fcntl.F_GETFL)
+        self.new_term = termios.tcgetattr(self.fd)
+        self.old_term = termios.tcgetattr(self.fd)
 
-        tty.setcbreak(sys.stdin.fileno())
-        self.newattr = termios.tcgetattr(self.fd)
-        self.newattr[3] = self.newattr[3] & ~termios.ICANON & ~termios.ECHO
+        # new terminal setting unbuffered
+        self.new_term[3] = (self.new_term[3] & ~termios.ICANON & ~termios.ECHO)
 
-    def oldTerminalSettings(self):
-        termios.tcsetattr(self.fd, termios.TCSAFLUSH, self.oldterm)
-        fcntl.fcntl(self.fd, fcntl.F_SETFL, self.oldflags)
+        self.initialize()
+        atexit.register(self.restore)
 
-    def newTerminalSettings(self):
-        termios.tcsetattr(self.fd, termios.TCSANOW, self.newattr)
-        fcntl.fcntl(self.fd, fcntl.F_SETFL, self.oldflags | os.O_NONBLOCK)
+    def restore(self):
+        termios.tcsetattr(self.fd, termios.TCSAFLUSH, self.old_term)
 
-    def getch(self):
-        try:
-            c = sys.stdin.read(1)
-            return ord(c)
+    def initialize(self):
+        termios.tcsetattr(self.fd, termios.TCSAFLUSH, self.new_term)
 
-        except IOError:
-            return 0
+    def kbhit(self):
+        dr, dw, de = select.select([sys.stdin], [], [], 0)
+        return dr <> []
 
 if __name__ == '__main__':
     a = GetKey()
-    a.newTerminalSettings()
 
     while 1:
-        if a.getch():
+        if a.kbhit():
             sys.exit(-1)
-
-    a.oldTerminalSettings()
 
