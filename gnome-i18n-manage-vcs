@@ -166,6 +166,10 @@ class GNOMEI18nManage:
         ''' Returns a string with ANSI codes that print as color on the terminal window. '''
         return self.tc.cprint(str, 'green')
 
+    def highlighttitle(self, str):
+        ''' Returns a string with ANSI codes that print as color on the terminal window. '''
+        return self.tc.cprint(str, 'blue')
+
     def process_config(self, cmdargs):
         ''' Process the 'config' action. '''
         # If no arguments, show 'config' specific help.
@@ -716,29 +720,28 @@ class GNOMEI18nManage:
 
     def usage(self, helpIDs):
         # Help text message
-        help_intro = """gnome-i18n-manage-vcs, a tool that helps manage translation files from a VCS
+        help_intro = self.highlight('gnome-i18n-manage-vcs') + """, """ + self.highlightitem('a tool that helps manage translation files from a VCS') + """
 Usage: gnome-i18n-manage-vcs <action> <options>
 """
 
         help_actions = """Please specify action. Available actions are:
-\t* config       configures the local settings
-\t* status       show detailed status of local files
-\t* vcsmanage    repository management tasks
-\t* poget        retrieval of PO files
-\t* commit       commiting PO files
+\t* """ + self.highlight('config') + """       configures the local settings
+\t* """ + self.highlight('status') + """       show detailed status of local files
+\t* """ + self.highlight('vcsmanage') + """    repository management tasks
+\t* """ + self.highlight('poget') + """        retrieval of PO files
+\t* """ + self.highlight('commit') + """       commiting PO files
 """
 
-        help_config = """config     Initial configuration
+        help_config = self.highlight('config') + self.highlighttitle('     Initial configuration') + """
 \t\t--language LANG     specify the language code per ISO 639
 \t\t--languagefull LANGFULL  specify the full language name (such as 'Brazilian Portuguese')
 \t\t--username USER     specify username USR (corresponds to SVN/GIT GNOME account)
 \t-l                          list the configuration options
 """
 
-        help_status = """status      Show current status for a previously configured release.
-"""
+        help_status = self.highlight('status') + self.highlighttitle('      Show current status for a previously configured release.') + '\n'
 
-        help_vcsmanage = """vcsmanage   Local repository management (Module filtering applies)
+        help_vcsmanage = self.highlight('vcsmanage') + self.highlighttitle('   Local repository management (Module filtering applies)') + """
 \t\t--cleanall      cleans up the repository folder (USE WITH CARE, WIPES REPOSITORIES)
 \t\t--clone         clone repositories
 \t\t--eponymous     make repositories eponymous (sets to new 'username')
@@ -748,16 +751,16 @@ Usage: gnome-i18n-manage-vcs <action> <options>
 \t\t--update-vcs    update local repositories (runs git pull --rebase on each)
 """
 
-        help_poget = """poget       Retrieve a selection of PO files (Module filtering required)
+        help_poget = self.highlight('poget') + self.highlighttitle('       Retrieve a selection of PO files (Module filtering required)') + """
 \t\t--cleanall      clears up the downloaded files (USE WITH CARE, WIPES PO FILES)
 """
 
-        help_commit = """commit    Commit and push the translation work to the repositories
+        help_commit = self.highlight('commit') + self.highlighttitle('    Commit and push the translation work to the repositories') + """
 \t\t--commit        commit changes in repositories
 \t\t--dry-run       do not really checkout/commit
 """
 
-        help_filtering = """Module filtering  (applies to 'vcsmanage', 'poget', 'commit')
+        help_filtering = self.highlighttitle('Module filtering  (applies to vcsmanage, poget, commit)') + """
 \t        --all               apply action to all locally available repositories
 \t-c CAT  --category CAT      i18n category name CAT (such as 'desktop')
 \t-m MODU --module MOD        i18n module name MOD (such as 'gnome-games')
@@ -765,7 +768,7 @@ Usage: gnome-i18n-manage-vcs <action> <options>
 \t-t TYPE --transtype TYPE    optionally specify translation type, either ui or doc
 """
 
-        help_common = """Common options
+        help_common = self.highlighttitle('Common options') + """
 \t-d      --dry-run           do not really perform the action
 \t-h      --help              this craft
 \t-v      --verbose           show verbose output
