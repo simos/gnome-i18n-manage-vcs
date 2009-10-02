@@ -668,10 +668,10 @@ class GNOMEI18nManage:
                         if not self.opt_dryrun:
                             indexnums = self.highlight('%(aa)3d/%(total)d' % { 'aa': count, 'total': total })
                             print '%(index)s -- %(desc)s %(dir)s' % \
-                                { 'index': indexnums, 'desc': description, 'dir': self.highlightitem(self.dir_vcs + item) }
+                                { 'index': indexnums, 'desc': self.highlighttitle(description), 'dir': self.highlightitem(self.dir_vcs + item) }
                             os.system(CMD)
                         else:
-                            print '\t', description, self.dir_vcs + item
+                            print '\t', self.highlighttitle(description), self.highlightitem(self.dir_vcs + item)
                             print '\t', CMD
                     else:
                         print 'Error, unknown type', type(command)
