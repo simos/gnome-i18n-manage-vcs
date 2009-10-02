@@ -19,6 +19,7 @@ The user can perform actions to modules by filtering according to
     2. module category (such as 'desktop')
     3. module name (such as 'eog')
     4. translation type (such as 'ui' or 'doc' for UI and Documentation respectively)
+    5. all (all locally found repositories)
 
 It is required to specify some filtering; there is no default filter.
 
@@ -26,6 +27,7 @@ It is required to specify some filtering; there is no default filter.
 -m xyz    --module xyz
 -r xyz    --release xyz
 -t xyz    --transtype xyz
+          --all
 
 C. Status
 
