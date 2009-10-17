@@ -57,14 +57,14 @@ class ModuleIterator:
                         continue
                     for resource in self.gnome_release_data['categories'][cat][mod]['resource']:
                         if self.transtype:
-                            if resource['id'] not in self.transtype:
+                            if self.transtype != '' and resource['id'] != self.transtype:
                                 continue
                             else:
                                 self.selected_modules.append([mod, resource])
                         else:
                             self.selected_modules.append([mod, resource])
 
-    def __next__(self):
+    def next(self):
         return self.selected_modules.pop()
 
     def __iter__(self):
@@ -94,7 +94,6 @@ if __name__ == '__main__':
 
     try:
         for module_set in a:
-            print(module_set[0], module_set[1])
-    except:
+            print "RESULT", module_set[0], module_set[1]['type']
+    except IndexError:
         pass
-

@@ -338,7 +338,7 @@ class GNOMEI18nManage:
                     dest_po = self.dir_po + pofilename
                     self.download_file(src_po, dest_po)
 
-                    print '\t\tTouching current time at', self.dir_po + self.file_START
+                    print '\t\tTouching current time at', self.dir_po + '/' + self.file_START
                     os.system('touch ' + self.dir_po + self.file_START)
                     os.system(CMD2)
 
