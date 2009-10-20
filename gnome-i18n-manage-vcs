@@ -649,6 +649,8 @@ class GNOMEI18nManage:
                 if self.getkey.kbhit():
                     print self.highlight('A key was pressed; interrupting the process')
                     return
+                if self.module != '' and item != self.module:
+                    continue
                 if os.path.isdir(self.dir_vcs + item):
                     if type(command).__name__ == 'function':
                         if self.opt_verbose:
