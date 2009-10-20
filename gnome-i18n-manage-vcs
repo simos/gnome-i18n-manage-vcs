@@ -90,6 +90,7 @@ class GNOMEI18nManage:
     opt_init = False
     opt_cleanall = False
     opt_gitverbose = False
+    opt_gitquiet = False
     opt_nocheckout = False
     opt_trim = False
     opt_verbose = False
@@ -353,7 +354,7 @@ class GNOMEI18nManage:
                 this_filter_long = ['cleanall',
                 'commit', 'clone', 'eponymous',
                 'no-checkout',
-                'reset', 'gitverbose', 'trim',
+                'reset', 'git-quiet', 'git-verbose', 'trim',
                 'username=', 'update-vcs', 'updatevcs',
                 'vcsupdate', 'vcs-update'];
                 this_filter_long.extend(self.common_long)
@@ -372,7 +373,9 @@ class GNOMEI18nManage:
                 self.opt_dryrun = True
             if o in ('--eponymous'):
                 self.opt_eponymous = True
-            if o in ('--gitverbose'):
+            if o in ('--git-quiet'):
+                self.opt_gitquiet = True
+            if o in ('--git-verbose'):
                 self.opt_gitverbose = True
             if o in ('-h', '--help'):
                 self.usage(['intro', 'vcsmanage', 'filtering', 'common'])
@@ -417,7 +420,7 @@ class GNOMEI18nManage:
             if self.module:
                 self.clone_module(self.module, self.username)
             elif self.release:
-                print "Cloning release", self.release, "category:", self.category
+                print "Cloning release", self.highlight(self.release), "category:", self.highlightitem(self.category)
             else:
                 print "You need to specify a release"
             sys.exit(1)
@@ -451,16 +454,16 @@ class GNOMEI18nManage:
                         branch = self.gnome_release_data['categories'][cat][mod]['branch']
 
                         CMD1 = 'cd ' + self.dir_vcs + ';'
-                        if self.opt_gitverbose:
-                            if self.opt_nocheckout:
-                                CMD1 = CMD1 + 'git clone --no-checkout ' + vcspath
-                            else:
-                                CMD1 = CMD1 + 'git clone ' + vcspath
-                        else:
+                        if self.opt_gitquiet:
                             if self.opt_nocheckout:
                                 CMD1 = CMD1 + 'git clone --no-checkout --quiet ' + vcspath
                             else:
                                 CMD1 = CMD1 + 'git clone --quiet ' + vcspath
+                        else:
+                            if self.opt_nocheckout:
+                                CMD1 = CMD1 + 'git clone --no-checkout ' + vcspath
+                            else:
+                                CMD1 = CMD1 + 'git clone ' + vcspath
 
                         if self.opt_dryrun and self.opt_verbose:
                             print '            CMD:', CMD1
@@ -742,7 +745,8 @@ class GNOMEI18nManage:
 \t\t--cleanall      cleans up the repository folder (USE WITH CARE, WIPES REPOSITORIES)
 \t\t--clone         clone repositories
 \t\t--eponymous     make repositories eponymous (sets to new 'username')
-\t\t--gitverbose    show progress when cloning (git 1.5 ignores this option).
+\t\t--git-quiet      don't show progress when cloning (git 1.5 ignores this option).
+\t\t--git-verbose    show progress when cloning
 \t\t--reset         reset each repository (git reset --hard origin/master)
 \t\t--trim          erases the working copy
 \t\t--update-vcs    update local repositories (runs git pull --rebase on each)
@@ -933,22 +937,22 @@ class GNOMEI18nManage:
 
     def clone_module(self, mod, user):
         ''' Runs a git clone on the module requested. '''
-        print 'Cloning module',  mod + '...'
+        print 'Cloning module',  self.highlight(mod) + '...'
         CMD = 'cd ' + self.dir_vcs + ';'
         if user == 'anonymous':
             vcspath = 'git://git.gnome.org/' + mod
         else:
             vcspath = 'ssh://' + user + '@' + 'git.gnome.org/git/' + mod
-        if self.opt_gitverbose:
-            if self.opt_nocheckout:
-                CMD = CMD + 'git clone --no-checkout ' + vcspath
-            else:
-                CMD = CMD + 'git clone ' + vcspath
-        else:
+        if self.opt_gitquiet:
             if self.opt_nocheckout:
                 CMD = CMD + 'git clone --no-checkout --quiet ' + vcspath
             else:
                 CMD = CMD + 'git clone --quiet ' + vcspath
+        else:
+            if self.opt_nocheckout:
+                CMD = CMD + 'git clone --no-checkout ' + vcspath
+            else:
+                CMD = CMD + 'git clone ' + vcspath
 
         if self.opt_dryrun:
             print '\tCMD:', CMD
