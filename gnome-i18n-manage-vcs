@@ -423,11 +423,10 @@ class GNOMEI18nManage:
                 print "Cloning release", self.highlight(self.release), "category:", self.highlightitem(self.category)
             else:
                 print "You need to specify a release"
-            sys.exit(1)
-            #self.parse_gnome_release_data()
-            #release = self.gnome_release_data['release']
-            #language = self.gnome_release_data['language']
-            #self.dir_po, self.dir_vcs = self.get_release_config(self.release)
+            self.parse_gnome_release_data()
+            release = self.gnome_release_data['release']
+            language = self.gnome_release_data['language']
+            self.dir_po, self.dir_vcs = self.get_release_config(self.release)
             print 'Language :', self.language
             print 'Directories:', self.dir_po, self.dir_vcs
             for cat in list(self.gnome_release_data['categories'].keys()):
@@ -690,7 +689,6 @@ class GNOMEI18nManage:
             self.process_stats('execute')
 
     def parse_gnome_release_data(self):
-        self.release = 'gnome-2-28'
         filename = 'managevcs-%s-%s.xml' % (self.language, self.release)
         filepath = os.path.join(os.curdir, filename)
         xmlurl = 'http://l10n.gnome.org/languages/' + self.language + '/' + self.release + '/xml'
@@ -703,6 +701,8 @@ class GNOMEI18nManage:
             os.remove(filepath)
             sys.exit(-7)
 
+	if (self.opt_verbose):
+		print 'Retrieved GNOME release data for', self.release, xmlurl
         self.gnome_release_data = self.parse_gnome_xml_file(filepath)
 
     def parse_gnome_xml_file(self, filename):
