@@ -6,19 +6,43 @@ what you need to worry is only the editing of the translation files.
 
 Currently, the VCS is git throughout this program.
 
-Workflows
+= Workflows =
 A. Configuration [config]
-1. Show current configuration
-gnome-i18n-manage-vcs --status
-2. Initial configuration (requires all options)
-gnome-i18n-manage-vcs config --language el --languagefull Greek --podir `pwd`/PO --release gnome-2-26 --vcsdir `pwd`/VCS -u simos
-3. Subsequent modification of configuration
-gnome-i18n-manage-vcs config --release gnome-2-28
+1. Initial configuration (requires all options)
+$ ./gnome-i18n-manage-vcs config --language el --languagefull Greek --username simos
+
+2. Show current configuration
+gnome-i18n-manage-vcs config -l
+
+3. Show current state (where repositories reside, what repositories are availale, etc)
+$ ./gnome-i18n-manage-vcs status 
 
 B. Managing VCS (GIT) repositories [vcsmanage]
-1. 
+1. Suppose you have fast connection in the US and you want to grab all GNOME 2.30
+repositories and then download them with HTTP/Bittorrent to your home computer.
+$ ./gnome-i18n-manage-vcs vcsmanage --clone --release gnome-2-30
 
-C. Retrieving PO files [poget]
+2. Suppose you want to do the thing above but with anonymous clones (not use
+your git.gnome.org account on that fast server)
+$ ./gnome-i18n-manage-vcs config --language dummy --languagefull dummy --username anonymous
+$ ./gnome-i18n-manage-vcs vcsmanage --clone --release gnome-2-30
+$ ./gnome-i18n-manage-vcs vcsmanage --all --trim
+$ ./gnome-i18n-manage-vcs config --language el --languagefull Greek --username simos
+
+3. Suppose you want to fix up the anonymous clones on your home computer with your
+git.gnome.org account details.
+$ ./gnome-i18n-manage-vcs vcsmanage --all --reset
+$ ./gnome-i18n-manage-vcs vcsmanage --all --eponymous
+
+4. Suppose you want to update your git repositories and sy nch them with git.gnome.org.
+$ ./gnome-i18n-manage-vcs vcsmanage --all --update-vcs
+
+5. Suppose you want to clone one more repository and add in your gnome-i18n-manage-vcs list.
+$ ./gnome-i18n-manage-vcs vcsmanage --clone --module anjal
+
+(the above command clones the 'anjal' repository and adds it to the rest of your repos)
+
+C. Retrieving PO files [poget]        UNDER CONSTRUCTION !!!
 1. Download all PO files for a release
 gnome-i18n-manage-vcs poget
 2. Download PO documentation files for gnome-games
@@ -28,44 +52,93 @@ gnome-i18n-manage-vcs poget --clean
 4. Clean downloaded PO files (dry run)
 gnome-i18n-manage-vcs poget --clean --dry-run
 
-D. Commiting PO files [pocommit]
-1. 
+D. Commiting PO files [pocommit]     UNDER CONSTRUCTION !!!
+1. <not available yet>
 
-$ ./gnome-i18n-manage-vcs
-gnome-i18n-manage-vcs a tool that helps manage translation files from a VCS
+E. Command line help
+
+$ ./gnome-i18n-manage-vcs 
+gnome-i18n-manage-vcs, a tool that helps manage translation files from GNOME VCS
 Usage: gnome-i18n-manage-vcs <action> <options>
-Available actions:
- config      Initial configuration (stored in ~/.gnomemanagevcsrc)
- 	-l LL  --language LL       language code per ISO 639
- 	       --languagefull LANG language name (as in "British English", Greek, etc)
-	       --podir PODIR       directory with .po files for uploading
- 	-r REL --release REL       release REL (such as 'gnome-2-26')
-               --vcsdir VCSDIR     specify the local directory with the GNOME GIT clones           
- 	-u USR --username USR      username USR (corresponds to SVN/GIT GNOME account)
 
- status      Show current status
+Please specify action. Available actions are:
+	* config       configures the local settings
+	* status       show detailed status of local files
+	* vcsmanage    repository management tasks
+	* poget        retrieval of PO files
+	* commit       commiting PO files
 
- vcsmanage   Local repository management (Module filtering applies)
-		--clean             clears up the downloaded files (USE WITH CARE, WIPES REPOSITORIES)
-	 -r     --reset             Reset each repository (git reset --hard origin/master)
-	        --gitquiet          Add --quiet to GIT cloning
-	        --update-vcs        update local repositories (runs git pull --rebase on each)
+Invoke with --help for full help options.
+$ _
 
- poget       Retrieve a selection of PO files (Module filtering applies)
-		--clean             clears up the downloaded files (USE WITH CARE, WIPES PO FILES)
+$ ./gnome-i18n-manage-vcs --help
+gnome-i18n-manage-vcs, a tool that helps manage translation files from GNOME VCS
+Usage: gnome-i18n-manage-vcs <action> <options>
 
- pocommit    Commit and push the translation work to the repositories
-	        --commit            commit changes in repositories
-	 -d     --dry-run           do not really checkout/commit
+Please specify action. Available actions are:
+	* config       configures the local settings
+	* status       show detailed status of local files
+	* vcsmanage    repository management tasks
+	* poget        retrieval of PO files
+	* commit       commiting PO files
 
- Module filtering
-	 -c CAT --category CAT      i18n category name CAT (such as 'desktop')
-	 -m MOD --module MOD        i18n module name MOD (such as 'gnome-games')
-	 -t     --transtype TYPE    optionally specify translation type, either ui or doc
+config     Initial configuration
+		--language LANG     specify the language code per ISO 639
+		--languagefull LANGFULL  specify the full language name (such as 'Brazilian Portuguese')
+		--username USER     specify username USR (corresponds to SVN/GIT GNOME account)
+	-l                          list the configuration options
 
- Common options
-	 -d     --dry-run           do not really perform the action
-	 -h     --help              this craft
-	 -q     --quiet             be quiet (even less output)
-	 -v     --verbose           show verbose output
+status      Show current status for a previously configured release.
+
+vcsmanage   Local repository management (Module filtering applies)
+		--cleanall      cleans up the repository folder (USE WITH CARE, WIPES REPOSITORIES)
+		--clone         clone repositories
+		--eponymous     make repositories eponymous (sets to new 'username')
+		--git-quiet      don't show progress when cloning (git 1.5 ignores this option).
+		--git-verbose    show progress when cloning
+		--reset         reset each repository (git reset --hard origin/master)
+		--trim          erases the working copy
+		--update-vcs    update local repositories (runs git pull --rebase on each)
+
+poget       Retrieve a selection of PO files (Module filtering required)
+		--cleanall      clears up the downloaded files (USE WITH CARE, WIPES PO FILES)
+
+commit    Commit and push the translation work to the repositories
+		--commit        commit changes in repositories
+		--dry-run       do not really checkout/commit
+
+Module filtering  (applies to vcsmanage, poget, commit)
+	        --all               apply action to all locally available repositories
+	-c CAT  --category CAT      i18n category name CAT (such as 'desktop')
+	-m MODU --module MOD        i18n module name MOD (such as 'gnome-games')
+	-r REL  --release REL       GNOME release (such as 'gnome-2-26')
+	-t TYPE --transtype TYPE    optionally specify translation type, either ui or doc
+
+Common options
+	-d      --dry-run           do not really perform the action
+	-h      --help              this craft
+	-v      --verbose           show verbose output
+$ _
+
+$ ./gnome-i18n-manage-vcs status 
+Language code: [el]	 Language: Greek	 Username: simos
+
+VCS Directory: /home/myusername/.local/share/gnome-i18n-manage-vcs/vcs/
+PO  Directory: /home/myusername/.local/share/gnome-i18n-manage-vcs/po/
+
+10 repositories found:
+	accerciser
+	accounts-dialog
+	anjal
+	cheese
+	empathy
+	evince
+	jhbuild
+	nautilus
+	sabayon
+	totem
+0 PO files found:
+No START file exists
+PO files that are newer than timestamp:
+Action has just completed.
 $ _
