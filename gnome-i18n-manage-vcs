@@ -421,9 +421,9 @@ class GNOMEI18nManage:
                 self.clone_module(self.module, self.username)
             elif self.release:
                 print "Cloning release", self.highlight(self.release), "category:", self.highlightitem(self.category)
+                self.parse_gnome_release_data()
             else:
                 print "You need to specify a release"
-            self.parse_gnome_release_data()
             release = self.gnome_release_data['release']
             language = self.gnome_release_data['language']
             self.dir_po, self.dir_vcs = self.get_release_config(self.release)
