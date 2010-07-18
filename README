@@ -12,7 +12,14 @@ A. Configuration [config]
 $ ./gnome-i18n-manage-vcs config --language el --languagefull Greek --username simos
 
 2. Show current configuration
-gnome-i18n-manage-vcs config -l
+$ gnome-i18n-manage-vcs config -l
+Configuration file (/home/user/.config/gnome-i18n-manage-vcs)
+Data directory     (/home/user/.local/share/gnome-i18n-manage-vcs)
+
+Full language name = Greek
+Language code      = el
+Username           = simos
+$ _
 
 3. Show current state (where repositories reside, what repositories are availale, etc)
 $ ./gnome-i18n-manage-vcs status 
@@ -109,6 +116,7 @@ commit    Commit and push the translation work to the repositories
 
 Module filtering  (applies to vcsmanage, poget, commit)
 	        --all               apply action to all locally available repositories
+	        --cache             use the cached XML file (if any) of the release modules
 	-c CAT  --category CAT      i18n category name CAT (such as 'desktop')
 	-m MODU --module MOD        i18n module name MOD (such as 'gnome-games')
 	-r REL  --release REL       GNOME release (such as 'gnome-2-26')

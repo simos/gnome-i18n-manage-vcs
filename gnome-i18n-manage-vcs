@@ -14,8 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-# Author  : Simos Xenitellis <simos@gnome.org>, 2009
-# Version : 0.9
+# Author  : Simos Xenitellis <simos@gnome.org>, 2009, 2010.
+# Version : 0.95
 
 import dircache                 # dircache.listdir()
 import os                       # os.system(), os.remove(), os.path.gmtime(), os.getenv()
@@ -24,11 +24,15 @@ import shutil                   # shutil.rmtree()
 import sys                      # sys.argv, sys.exit()
 import urllib                   # urllib.urlretrieve()
 import ConfigParser             # ConfigParser()
-import TextColorPrint
+import TextColorPrint   # TextColorPrint()
 import GetKey                   # for GetKey.getch()
 from datetime import datetime   # datetime()
 
-from xdg.BaseDirectory import * # XDG Python support, ...
+try:
+  XDG_NOT_AVAILABLE = False
+  import xdg.BaseDirectory# XDG Python support, BaseDirectory.{xdg_config_home, xdg_data_home}
+except ImportError as err:
+  XDG_NOT_AVAILABLE = True
 
 import GNOMEI18nTarget
 
@@ -43,9 +47,9 @@ except ImportError as err:
 PROGNAME='gnome-i18n-manage-vcs'
 
 PACKAGE_NAME    = 'GNOME I18n Manage VCS'
-PACKAGE_VERSION = '0.9'
+PACKAGE_VERSION = '0.95'
 PACKAGE_AUTHORS = ['Simos Xenitellis <simos@gnome.org>', 'Og Maciel <ogmaciel@gnome.org>']
-PACKAGE_COPYRIGHT = 'Copyright 2009 Simos Xenitellis'
+PACKAGE_COPYRIGHT = 'Copyright 2009, 2010 Simos Xenitellis'
 
 class GNOMEI18nManage:
     # Required configuration options
@@ -55,6 +59,7 @@ class GNOMEI18nManage:
 
     # Options used for filtering
     all = False
+    cache = False
     category = ''
     module = ''
     release = ''
@@ -64,7 +69,7 @@ class GNOMEI18nManage:
     common_long = ['dry-run', 'help', 'verbose']
 
     filter_short = 'c:m:r:t:'
-    filter_long = ['all', 'category=', 'module=', 'release=', 'transtype=']
+    filter_long = ['all', 'cache', 'category=', 'module=', 'release=', 'transtype=']
 
     gnome_release_data = []
 
@@ -109,17 +114,25 @@ class GNOMEI18nManage:
             self.usage(['intro', 'actions', 'help'])
             sys.exit(0)
 
-        # Establish where the configuration file should be stored as per the
-        # XDG directories recommendation by the Freedesktop organization.
-        self.conf_dir = os.path.join(xdg_config_home, PROGNAME)
-        # Create the directory if it doesn't exist
-        if not os.path.isdir(self.conf_dir):
+        if XDG_NOT_AVAILABLE: 
+          self.conf_dir = os.path.join(os.path.expanduser('~'), '.' + PROGNAME)
+          # Create the directory if it doesn't exist
+          if not os.path.isdir(self.conf_dir):
             os.mkdir(self.conf_dir)
 
-        self.data_dir = os.path.join(xdg_data_home, PROGNAME)
-        # Create the directory if it doesn't exist
-        if not os.path.isdir(self.data_dir):
-            os.mkdir(self.data_dir)
+          self.data_dir = self.conf_dir
+        else:
+          # Establish where the configuration file should be stored as per the
+          # XDG directories recommendation by the Freedesktop organization.
+          self.conf_dir = os.path.join(xdg.BaseDirectory.xdg_config_home, PROGNAME)
+          # Create the directory if it doesn't exist
+          if not os.path.isdir(self.conf_dir):
+                os.mkdir(self.conf_dir)
+
+          self.data_dir = os.path.join(xdg.BaseDirectory.xdg_data_home, PROGNAME)
+          # Create the directory if it doesn't exist
+          if not os.path.isdir(self.data_dir):
+              os.mkdir(self.data_dir)
 
         # Set the configuration filename and path.
         self.conf_file = os.path.join(self.conf_dir, '%s.conf' % PROGNAME)
@@ -214,6 +227,7 @@ class GNOMEI18nManage:
         elif listconfig:
             self.readconfig()
             print 'Configuration file (%s)' % self.highlight(self.conf_dir)
+            print 'Data directory     (%s)' % self.highlight(self.data_dir)
             print
             print 'Full language name =', self.highlight(self.languagefull)
             print 'Language code      =', self.highlight(self.language)
@@ -237,7 +251,7 @@ class GNOMEI18nManage:
             sys.exit(-1)
 
         # Make sure we have directories for po and vcs files.
-        self.createreleasedirectory(self.release)
+        #self.createreleasedirectory(self.release)
 
         # Show diagnostics for created directories.
         for dir in [self.dir_po, self.dir_vcs]:
@@ -283,13 +297,7 @@ class GNOMEI18nManage:
 
         self.verify_filtering()
 
-        if not os.path.isdir(os.path.join(self.data_dir, self.release)):
-            print 'The release you have entered has not been configured yet.'
-            print 'Please provide the name of a valid release or make sure to'
-            print ' configure it first.'
-            sys.exit(0)
-
-        self.dir_po, self.dir_vcs = self.get_release_config(self.release)
+        self.dir_po, self.dir_vcs = self.get_release_config()
 
         if self.opt_cleanall:
             podircontents = dircache.listdir(self.dir_po)
@@ -307,24 +315,31 @@ class GNOMEI18nManage:
                     os.remove(self.dir_po + pofile)
             sys.exit(0)
 
+        if os.path.exists(self.dir_po + self.file_START) and self.translations_pending():
+          print 'A START file already exists, ', self.dir_po + self.file_START
+          print 'and there are uncomitted translations. Commit these translations'
+          print 'before getting more PO files.'
+          sys.exit(-11);
+
         self.parse_gnome_release_data()
         release = self.gnome_release_data['release']
         language = self.gnome_release_data['language']
 
         # Create a new directory for this release
-        self.createreleasedirectory(release)
+        #self.createreleasedirectory(release)
 
-        print 'Release  :', self.release
-        print 'Language :', self.language
+        print self.highlighttitle('Release  :'), self.highlightitem(self.release)
+        print self.highlighttitle('Language :'), self.highlightitem(self.language)
         for cat in list(self.gnome_release_data['categories'].keys()):
             if self.category != '' and cat != self.category:
                 continue
-            print '    Category: %(cat)s' % { 'cat': cat }
+            print '\n    Category: %(cat)s' % { 'cat': self.highlighttitle(cat) }
             for mod in self.gnome_release_data['categories'][cat]:
                 if self.module != '' and mod != self.module:
                     continue
-                print '        Module: %(br)22s, Branch: %(mod)s' % { 'br': mod, \
-                    'mod': self.gnome_release_data['categories'][cat][mod]['branch'] }
+                str_module = 'Module: %(mod)40s' % { 'mod': self.highlight(mod) }
+                str_branch = 'Branch: %(br)22s' % { 'br': self.highlight(self.gnome_release_data['categories'][cat][mod]['branch']) }
+                print '        %(mod)s, %(br)s' % { 'mod': str_module, 'br': str_branch }
                 for resource in self.gnome_release_data['categories'][cat][mod]['resource']:
                     if self.transtype:
                         if resource['id'] not in self.transtype:
@@ -337,14 +352,13 @@ class GNOMEI18nManage:
 
                     src_po = 'http://l10n.gnome.org' + resource['pofile']
                     dest_po = self.dir_po + pofilename
-                    self.download_file(src_po, dest_po)
-
-                    print '\t\tTouching current time at', self.dir_po + '/' + self.file_START
-                    os.system('touch ' + self.dir_po + self.file_START)
-                    os.system(CMD2)
+                    if self.opt_dryrun:
+                      print '           Downloading ' + self.highlightitem(src_po)
+                    else:
+                      self.download_file(src_po, dest_po)
 
     def process_vcsmanage(self, cmdargs):
-        self.dir_po, self.dir_vcs = self.get_release_config(self.release)
+        self.dir_po, self.dir_vcs = self.get_release_config()
         if not cmdargs:
             self.usage(['intro', 'vcsmanage', 'filtering', 'common'])
             sys.exit(0)
@@ -426,7 +440,7 @@ class GNOMEI18nManage:
                 print "You need to specify a release"
             release = self.gnome_release_data['release']
             language = self.gnome_release_data['language']
-            self.dir_po, self.dir_vcs = self.get_release_config(self.release)
+            self.dir_po, self.dir_vcs = self.get_release_config()
             print 'Language :', self.language
             print 'Directories:', self.dir_po, self.dir_vcs
             for cat in list(self.gnome_release_data['categories'].keys()):
@@ -489,8 +503,11 @@ class GNOMEI18nManage:
             sys.exit(0)
 
         try:
-            opts, args = getopt.getopt(cmdargs, 'adhqsu:' + self.filter_short, [ 'commit', 'dryrun', 'dry-run',
-                    'help', 'verbose', self.filter_long ])
+                this_filter_short = self.common_short + self.filter_short
+                this_filter_long = ['commit'];
+                this_filter_long.extend(self.common_long)
+                this_filter_long.extend(self.filter_long)
+                opts, args = getopt.getopt(cmdargs, this_filter_short, this_filter_long)
         except getopt.GetoptError as err:
             print 'Error', err
             self.usage(['intro', 'commit', 'filtering', 'common'])
@@ -507,80 +524,20 @@ class GNOMEI18nManage:
                 self.opt_verbose = True
             self.apply_filtering(o, a)
 
-        self.verify_filtering()
+        #self.verify_filtering()
+        self.dir_po, self.dir_vcs = self.get_release_config()
 
         if self.opt_commit:
-            self.apply_translation_changes()
-
-    def show_status(self, cmdargs):
-        ''' Show status information of the current localisation files. '''
-        # Retrieve PO and VCS directory values.
-        self.dir_po, self.dir_vcs = self.get_release_config(self.release)
-
-        # Perform check for VCS directory.
-        if not os.path.isdir(self.dir_vcs):
-            print 'The release you have entered has not been configured yet.'
-            print 'Please provide the name of a valid release or make sure to'
-            print ' configure it first.'
-            sys.exit(0)
-
-        # Print general configuration information.
-        print 'Language code: [%(lang)s]\t Language: %(langfull)s\t Username: %(u)s' % \
-                { 'lang': self.highlight(self.language),
-                  'langfull': self.highlight(self.languagefull), 'u': self.highlight(self.username) }
-        print
-        print 'VCS Directory:', self.highlight(self.dir_vcs)
-        print 'PO  Directory:', self.highlight(self.dir_po)
-        print
-
-        # Show found repositories, PO files.
-        dircontents = dircache.listdir(self.dir_vcs)
-        dircontents = dircontents[:]
-        print self.highlight(str(len(dircontents))), 'repositories found:'
-        for repo in dircontents:
-            print '\t', self.highlightitem(repo)
-        if os.path.exists(self.dir_po) or self.dir_po:
-            podircontents = dircache.listdir(self.dir_po)
-            podircontents = podircontents[:]
-            try:
-                podircontents.remove(self.file_START)
-            except ValueError as err:
-                pass
-            print self.highlight(str(len(podircontents))), 'PO files found:'
-            for pofile in podircontents:
-                print '\t', self.highlightitem(pofile)
-        else:
-            print 'No PO directory has been specified. Please specify'
-            print 'such a directory with the "config" action.'
-            print 'Exiting...'
-            sys.exit(-1)
-        # Show PO file details
-        try:
-            start_time = os.stat(self.dir_po + self.file_START).st_mtime
-        except OSError:
-            start_time = 0
-        if start_time:
-            print 'Timestamp file START has date/time:',  datetime.ctime(datetime.fromtimestamp(start_time))
-        else:
-            print 'No START file exists'
-        print 'PO files that are newer than timestamp:'
-        for pofile in podircontents:
-            potime = os.stat(self.dir_po + pofile).st_mtime
-            if start_time < potime:
-                print '\t', datetime.ctime(datetime.fromtimestamp(potime)), '\t', self.highlightitem(pofile)
-
-    def apply_translation_changes(self):
-        vcsdircontents = dircache.listdir(self.dir_vcs)
-        vcsdircontents = vcsdircontents[:]
-        podircontents = dircache.listdir(self.dir_po)
-        podircontents = podircontents[:]
-        try:
+          vcsdircontents = dircache.listdir(self.dir_vcs)
+          vcsdircontents = vcsdircontents[:]
+          podircontents = dircache.listdir(self.dir_po)
+          podircontents = podircontents[:]
+          try:
             podircontents.remove(self.file_START)
-        except:
+          except:
             pass
-        start_time = os.stat(self.dir_po + self.file_START).st_mtime
-        for pofile in podircontents:
-            print 'VCSPATH', self.get_po_file_data(pofile)
+          start_time = os.stat(self.dir_po + self.file_START).st_mtime
+          for pofile in podircontents:
             fileparts = pofile.split('.')
             try:
                 if fileparts[0][-5:] != '-help':
@@ -610,6 +567,79 @@ class GNOMEI18nManage:
                         print 'but', destination, 'is not there'
                 if not self.opt_dryrun:
                     shutil.copyfile(self.dir_po + pofile,  pofile)
+
+    def show_status(self, cmdargs):
+        ''' Show status information of the current localisation files. '''
+        # Retrieve PO and VCS directory values.
+        self.dir_po, self.dir_vcs = self.get_release_config()
+
+        # Perform check for VCS directory.
+        if not os.path.isdir(self.dir_vcs):
+            print 'The release you have entered has not been configured yet.'
+            print 'Please provide the name of a valid release or make sure to'
+            print ' configure it first.'
+            sys.exit(0)
+
+        # Print general configuration information.
+        print '%(lc)s [%(lang)s]\t %(lf)s %(langfull)s\t %(un)s %(u)s' % \
+            { 'lc': self.highlighttitle('Language code:'),
+              'lang': self.highlight(self.language),
+              'lf': self.highlighttitle('Language:'),
+              'langfull': self.highlight(self.languagefull), 
+              'un': self.highlighttitle('Username:'),
+              'u': self.highlight(self.username) }
+        print
+        print self.highlighttitle('VCS Directory:'), self.highlight(self.dir_vcs)
+        print self.highlighttitle('PO  Directory:'), self.highlight(self.dir_po)
+        print
+
+        # Show found repositories, PO files.
+        dircontents = dircache.listdir(self.dir_vcs)
+        dircontents = dircontents[:]
+        print self.highlight(str(len(dircontents))), 'repositories found:'
+        for repo in dircontents:
+            print '\t', self.highlightitem(repo)
+        if os.path.exists(self.dir_po) or self.dir_po:
+            podircontents = dircache.listdir(self.dir_po)
+            podircontents = podircontents[:]
+            try:
+                podircontents.remove(self.file_START)
+            except ValueError as err:
+                pass
+            print self.highlight(str(len(podircontents))), 'PO files found:'
+            for pofile in podircontents:
+                print '\t', self.highlightitem(pofile)
+        else:
+            print 'No PO directory has been specified. Please specify'
+            print 'such a directory with the "config" action.'
+            print 'Exiting...'
+            sys.exit(-1)
+        # Show PO file details
+        try:
+            start_time = os.stat(self.dir_po + '/' + self.file_START).st_mtime
+        except OSError:
+            start_time = 0
+        if start_time:
+            print 'Timestamp file START has date/time:',  datetime.ctime(datetime.fromtimestamp(start_time))
+        else:
+            print 'No START file exists'
+        print 'PO files that are newer than timestamp:'
+        for pofile in podircontents:
+            potime = os.stat(self.dir_po + pofile).st_mtime
+            if start_time < potime:
+                print '\t', datetime.ctime(datetime.fromtimestamp(potime)), '\t', self.highlightitem(pofile)
+
+    def translations_pending(self):
+        try:
+            start_time = os.stat(self.dir_po + '/' + self.file_START).st_mtime
+        except OSError:
+            start_time = 0
+        podircontents = dircache.listdir(self.dir_po)
+        for pofile in podircontents:
+            potime = os.stat(self.dir_po + pofile).st_mtime
+            if start_time < potime:
+              return True
+        return False
 
     def get_po_file_data(self, pofile):
         if not self.gnome_release_data:
@@ -691,18 +721,26 @@ class GNOMEI18nManage:
     def parse_gnome_release_data(self):
         filename = 'managevcs-%s-%s.xml' % (self.language, self.release)
         filepath = os.path.join(os.curdir, filename)
+
+        # If a file already exists and we are allowed to cache, 
+        if os.path.getsize(filepath) and self.cache:
+          if (self.opt_verbose):
+            print 'Using cached GNOME release data for', self.release
+          self.gnome_release_data = self.parse_gnome_xml_file(filepath)
+          return
+    
         xmlurl = 'http://l10n.gnome.org/languages/' + self.language + '/' + self.release + '/xml'
         self.download_file(xmlurl, filepath)
 
         # An error page is about 2.5KB, a proper XML file is circa 50KB.
         if os.path.getsize(filepath) < 5000:
             print 'Language', self.language, 'was not found.\nExiting...'
-            print xmlurl
+            print 'The URL was: ', xmlurl
             os.remove(filepath)
             sys.exit(-7)
 
-	if (self.opt_verbose):
-		print 'Retrieved GNOME release data for', self.release, xmlurl
+        if (self.opt_verbose):
+          print 'Retrieved GNOME release data for', self.release, xmlurl
         self.gnome_release_data = self.parse_gnome_xml_file(filepath)
 
     def parse_gnome_xml_file(self, filename):
@@ -765,9 +803,10 @@ class GNOMEI18nManage:
 
         help_filtering = self.highlighttitle('Module filtering  (applies to vcsmanage, poget, commit)') + """
 \t        --all               apply action to all locally available repositories
+\t        --cache             use the cached XML file (if any) of the release modules
 \t-c CAT  --category CAT      i18n category name CAT (such as 'desktop')
 \t-m MODU --module MOD        i18n module name MOD (such as 'gnome-games')
-\t-r REL  --release REL       GNOME release (such as 'gnome-2-26')
+\t-r REL  --release REL       GNOME release (such as 'gnome-2-30')
 \t-t TYPE --transtype TYPE    optionally specify translation type, either ui or doc
 """
 
@@ -907,7 +946,7 @@ class GNOMEI18nManage:
         #    print "It is required to perform the initial configuration, before issuing commands."
         #    sys.exit(10)
 
-    def get_release_config(self, release):
+    def get_release_config(self):
         dir_po = os.path.join(self.data_dir, 'po/')
         dir_vcs = os.path.join(self.data_dir, 'vcs/')
 
@@ -916,6 +955,8 @@ class GNOMEI18nManage:
     def apply_filtering(self, o, a):
         if o in ('--all'):
             self.all = True
+        if o in ('--cache'):
+            self.cache = True
         if o in ('-c', '--category'):
             self.category = a
         if o in ('-m', '--module'):
